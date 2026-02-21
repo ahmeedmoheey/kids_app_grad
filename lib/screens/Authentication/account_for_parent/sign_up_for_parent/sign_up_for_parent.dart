@@ -1,12 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kids_app_grad/utils/assets_manager.dart';
 import 'package:kids_app_grad/utils/colors_manager.dart';
 import 'package:kids_app_grad/utils/routes_manager.dart';
 
-class SignUpForParent extends StatelessWidget {
+class SignUpForParent extends StatefulWidget {
   const SignUpForParent({super.key});
+
+  @override
+  State<SignUpForParent> createState() => _SignUpForParentState();
+}
+
+class _SignUpForParentState extends State<SignUpForParent> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  void signUpParent() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      String uid = userCredential.user!.uid;
+
+      await _firestore.collection('users').doc(uid).set({
+        'name': fullNameController.text.trim(),
+        'email': emailController.text.trim(),
+        'type': 'parent',
+      });
+
+      GoRouter.of(context).push(RoutesManager.kSignUpForChild, extra: uid);
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign Up failed: ${e.message}')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,129 +73,89 @@ class SignUpForParent extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10.h),
-
-            Container(
-              height: 200.h,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20.r),
-                color: const Color(0xffE8E3D9),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20.r),
-                child: Image.asset(
-                  AssetsManager.photo,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 25.h),
-
-            Text(
-              "Join the Adventure",
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-                color: ColorManager.black,
-              ),
-            ),
-
-            SizedBox(height: 8.h),
-
-            Text(
-              "Create an account to start your child’s\npersonalized learning journey.",
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey,
-              ),
-            ),
-
-            SizedBox(height: 25.h),
-
-            /// Full Name
-            buildLabel("Full Name"),
-            SizedBox(height: 8.h),
-            buildTextField(
-              hint: "Enter your full name",
-              icon: Icons.person_outline,
-            ),
-
-            SizedBox(height: 20.h),
-
-            /// Email
-            buildLabel("Email Address"),
-            SizedBox(height: 8.h),
-            buildTextField(
-              hint: "parent@example.com",
-              icon: Icons.email_outlined,
-            ),
-
-            SizedBox(height: 20.h),
-
-            buildLabel("Password"),
-            SizedBox(height: 8.h),
-            buildTextField(
-              hint: "Create a strong password",
-              icon: Icons.lock_outline,
-              isPassword: true,
-            ),
-
-            SizedBox(height: 30.h),
-
-            SizedBox(
-              width: double.infinity,
-              height: 55.h,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:  ColorManager.pink,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                  ),
-                ),
-                onPressed: () {},
-                child: Text(
-                  "Create Account ",
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: ColorManager.brown,
-                  ),
-                ),
-              ),
-            ),
-
-            SizedBox(height: 20.h),
-
-          Center(child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Already have an account? ",style: TextStyle(
-                fontSize: 14.sp,
-                color: ColorManager.gry,
-
-              ),),
-              SizedBox(width: 8,),
-
-              GestureDetector(
-                onTap: () {
-                  GoRouter.of(context).push(RoutesManager.kLoginForParent);
-                },
-                child: Text("Log In ",style: TextStyle(
-                  fontSize: 14.sp,
+              SizedBox(height: 10.h),
+              Container(
+                height: 200.h,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.r),
+                  color: const Color(0xffE8E3D9),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20.r),
+                  child: Image.asset(
+                    AssetsManager.photo,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(height: 25.h),
+              Text(
+                "Join the Adventure",
+                style: TextStyle(
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
-                  color: ColorManager.semony
-                ),),
+                  color: ColorManager.black,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                "Create an account to start your child’s\npersonalized learning journey.",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey,
+                ),
+              ),
+              SizedBox(height: 25.h),
+
+              buildLabel("Full Name"),
+              SizedBox(height: 8.h),
+              buildTextField(fullNameController, "Enter your full name",
+                  Icons.person_outline, false),
+
+              SizedBox(height: 20.h),
+              buildLabel("Email Address"),
+              SizedBox(height: 8.h),
+              buildTextField(emailController, "parent@example.com", Icons.email_outlined, false,
+                  isEmail: true),
+
+              SizedBox(height: 20.h),
+              buildLabel("Password"),
+              SizedBox(height: 8.h),
+              buildTextField(passwordController, "Create a strong password",
+                  Icons.lock_outline, true),
+
+              SizedBox(height: 30.h),
+              SizedBox(
+                width: double.infinity,
+                height: 55.h,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorManager.pink,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                  ),
+                  onPressed: isLoading ? null : signUpParent,
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                    "Create Account",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: ColorManager.brown,
+                    ),
+                  ),
+                ),
               ),
             ],
-          )),
-
-            SizedBox(height: 30.h),
-          ],
+          ),
         ),
       ),
     );
@@ -166,13 +172,18 @@ class SignUpForParent extends StatelessWidget {
     );
   }
 
-  Widget buildTextField({
-    required String hint,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
-    return TextField(
+  Widget buildTextField(
+      TextEditingController controller, String hint, IconData icon, bool isPassword,
+      {bool isEmail = false}) {
+    return TextFormField(
+      controller: controller,
       obscureText: isPassword,
+      validator: (value) {
+        if (value == null || value.isEmpty) return "This field is required";
+        if (isEmail && !RegExp(r'\S+@\S+\.\S+').hasMatch(value)) return "Enter a valid email";
+        if (isPassword && value.length < 6) return "Password must be at least 6 characters";
+        return null;
+      },
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.grey),

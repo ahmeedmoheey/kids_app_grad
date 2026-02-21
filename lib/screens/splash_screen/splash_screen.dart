@@ -24,61 +24,42 @@ navigateToOnBoarding();
   Widget build(BuildContext context) {
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: AlignmentGeometry.bottomRight,
-              colors: [
-            ColorManager.pink,
-            ColorManager.nely
-          ])
-        ),
-        child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-               SvgPicture.asset(AssetsManager.icon,),
-                  Text("Kidzoo", style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: ColorManager.white,
-                  ),),
-                    SizedBox(height: 25.h,),
-            Image.asset(AssetsManager.splashPhoto),
-            SizedBox(height: 25.h,),
+      backgroundColor: ColorManager.orange,
+      body: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(AssetsManager.logo),
+          SizedBox(height: 25.h,),
 
-            Text("Learn. Play. Grow.",style: TextStyle(
-              color: ColorManager.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold
-            ),),
-            SizedBox(height: 25.h,),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: const LinearProgressIndicator(
-                  minHeight: 8,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  backgroundColor: Colors.white24,
-                ),
+          Text("Learn. Play. Grow.",style: TextStyle(
+            color: ColorManager.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold
+          ),),
+          SizedBox(height: 25.h,),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 50),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: const LinearProgressIndicator(
+                minHeight: 8,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                backgroundColor: Colors.white24,
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "Loading your adventure...",
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.white70,
-              ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Loading your adventure...",
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.white70,
             ),
+          ),
 
 
 
-          ],
-        ),
+        ],
       ),
     );
   }
