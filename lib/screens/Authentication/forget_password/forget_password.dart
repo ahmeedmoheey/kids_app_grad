@@ -55,7 +55,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
           },
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: ColorManager.orange,
+            color: ColorManager.pinkk,
             size: 22,
           ),
         ),
@@ -122,7 +122,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                   ),
                   prefixIcon: Icon(
                     Icons.email_outlined,
-                    color: ColorManager.orange,
+                    color: ColorManager.pinkk,
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -137,7 +137,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.r),
                     borderSide: BorderSide(
-                      color: ColorManager.orange,
+                      color: ColorManager.pinkk,
                       width: 2,
                     ),
                   ),
@@ -151,7 +151,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                 height: 55.h,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: ColorManager.orange,
+                    backgroundColor: ColorManager.pinkk,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.r),
                     ),

@@ -24,7 +24,7 @@ navigateToOnBoarding();
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: ColorManager.orange,
+      backgroundColor: ColorManager.pinkk,
       body: Column(
             mainAxisAlignment: MainAxisAlignment.center,
         children: [

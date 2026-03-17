@@ -27,7 +27,7 @@ class _SetNewPasswordState extends State<SetNewPassword> {
           onPressed: () => context.pop(),
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: ColorManager.orange,
+            color: ColorManager.pinkk,
           ),
         ),
         centerTitle: true,
@@ -118,7 +118,7 @@ class _SetNewPasswordState extends State<SetNewPassword> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.r),
                     borderSide: BorderSide(
-                      color: ColorManager.orange,
+                      color: ColorManager.pinkk,
                       width: 2,
                     ),
                   ),
@@ -168,7 +168,7 @@ class _SetNewPasswordState extends State<SetNewPassword> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30.r),
                     borderSide: BorderSide(
-                      color: ColorManager.orange,
+                      color: ColorManager.pinkk,
                       width: 2,
                     ),
                   ),
@@ -237,7 +237,7 @@ class _SetNewPasswordState extends State<SetNewPassword> {
                 height: 55.h,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: ColorManager.orange,
+                    backgroundColor: ColorManager.pinkk,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.r),
                     ),

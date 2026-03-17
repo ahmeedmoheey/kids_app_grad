@@ -26,7 +26,7 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  AssetsManager.onBoarding3,
+                  AssetsManager.onBoarding4,
 
                 ),
                 SizedBox(height: 30),
@@ -34,14 +34,14 @@ class WelcomeScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SvgPicture.asset(AssetsManager.icon3),
+                    SvgPicture.asset(AssetsManager.icon3,color: ColorManager.pinkk,),
                     SizedBox(width: 10.w,),
                     Text(
                       "Kidzooo",
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: ColorManager.darkOrange,
+                        color: ColorManager.pinkk,
                       ),
                     ),
                   ],
@@ -70,7 +70,7 @@ class WelcomeScreen extends StatelessWidget {
                       GoRouter.of(context).push(RoutesManager.kSignUpForParent);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorManager.semony,
+                      backgroundColor: ColorManager.pinkk,
                       padding: EdgeInsets.symmetric(vertical: 15.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
@@ -94,10 +94,10 @@ class WelcomeScreen extends StatelessWidget {
                       GoRouter.of(context).push(RoutesManager.kLoginForParent);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorManager.white,
+                      backgroundColor: ColorManager.pinkk,
                       padding: EdgeInsets.symmetric(vertical: 15.h),
                       shape: RoundedRectangleBorder(
-                        side: BorderSide(width: 1, color: ColorManager.darkOrange),
+                        side: BorderSide(width: 1, color: ColorManager.pinkk),
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
@@ -106,7 +106,8 @@ class WelcomeScreen extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18.sp,
-                        color: ColorManager.darkOrange,
+                        color: ColorManager.white
+                        ,
                       ),
                     ),
                   ),

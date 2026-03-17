@@ -5,11 +5,16 @@ import 'package:kids_app_grad/screens/Authentication/account_for_parent/sign_up_
 import 'package:kids_app_grad/screens/Authentication/forget_password/forget_password.dart';
 import 'package:kids_app_grad/screens/Authentication/forget_password/forget_password_varification/forget_password_varification.dart';
 import 'package:kids_app_grad/screens/Authentication/forget_password/set_new_password/set_new_password.dart';
+import 'package:kids_app_grad/screens/child_profile/child_profile.dart';
 import 'package:kids_app_grad/screens/dashboard_screen/dashboard_screen.dart';
-import 'package:kids_app_grad/screens/games_screen/games_screen.dart';
+import 'package:kids_app_grad/screens/games_screen/mataha_games.dart';
+import 'package:kids_app_grad/screens/games_screen/shape_game_screen.dart';
+import 'package:kids_app_grad/screens/home_screen/home_screen.dart';
+import 'package:kids_app_grad/screens/main_screen/main_screen.dart';
 import 'package:kids_app_grad/screens/onBoarding/onboarding.dart';
 import 'package:kids_app_grad/screens/welcome_screen/welcome_screen.dart';
 import '../screens/Authentication/login_screen/login_screen.dart';
+import '../screens/games_screen/shape_matching_game.dart';
 import '../screens/splash_screen/splash_screen.dart';
 
 class RoutesManager{
@@ -24,6 +29,11 @@ static const kSetNewPass = "/setNewPassword";
 static const kProfileChild = "/childProfile";
 static const kDashboardScreen = "/dashboardScreen";
 static const kGamesScreen = "/gamesScreen";
+static const kMainScreen = "/mainScreen";
+static const kHomeScreen = "/homeScreen";
+static const kChildProfile = "/childProfile";
+static const kMatahaGames = "/matahaGames";
+static const kShapeMatcher = "/shapeMatcher";
 static final router = GoRouter(routes: [
   GoRoute(
     path: '/',
@@ -68,7 +78,29 @@ static final router = GoRouter(routes: [
   ),
   GoRoute(
     path: kGamesScreen,
-    builder: (context, state) => const GamesScreen(),
+    builder: (context, state) => const ShapeGameScreen (),
+  ),
+  GoRoute(
+    path: kHomeScreen,
+    builder: (context, state) => const HomeScreen(),
+  ),
+  GoRoute(
+    path: kMainScreen,
+    builder: (context, state) => const MainScreen(),
+  ),
+  GoRoute(
+    path: kChildProfile,
+    builder: (context, state) => const ChildProfile(),
+  ),
+  GoRoute(
+    path: kMatahaGames,
+    builder: (context, state) => const MatahaGames(),
+  ),
+  GoRoute(
+    path: kShapeMatcher,
+
+
+    builder: (context, state) =>  ShapeMatchingGame(),
   ),
 
 

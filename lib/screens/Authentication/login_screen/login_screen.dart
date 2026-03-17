@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool isLoading = false;
-  bool passwordVisible = false; // ← للتحكم في عرض الباسورد
+  bool passwordVisible = false;
 
   void loginUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -34,25 +34,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       if (input.contains('@')) {
-        // الأب
-        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        UserCredential userCredential =
+        await _auth.signInWithEmailAndPassword(
           email: input,
           password: password,
         );
 
         String uid = userCredential.user!.uid;
-        DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-        String userType = doc.exists ? (doc['type'] ?? 'parent') : 'parent';
+        DocumentSnapshot doc =
+        await _firestore.collection('users').doc(uid).get();
+
+        String userType =
+        doc.exists ? (doc['type'] ?? 'parent') : 'parent';
 
         if (userType == 'parent') {
           GoRouter.of(context).push(RoutesManager.kDashboardScreen);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login failed: Not a parent account')),
+            const SnackBar(content: Text('Not a parent account')),
           );
         }
       } else {
-        // الطفل
         QuerySnapshot childSnapshot = await _firestore
             .collection('children')
             .where('name', isEqualTo: input)
@@ -60,16 +62,16 @@ class _LoginScreenState extends State<LoginScreen> {
             .get();
 
         if (childSnapshot.docs.isNotEmpty) {
-          GoRouter.of(context).push(RoutesManager.kGamesScreen);
+          GoRouter.of(context).push(RoutesManager.kMainScreen);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login failed: Child not found')),
+            const SnackBar(content: Text('Child not found')),
           );
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $e')),
+        const SnackBar(content: Text('Login failed')),
       );
     } finally {
       setState(() => isLoading = false);
@@ -79,15 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ColorManager.offWhite,
       appBar: AppBar(
-        backgroundColor: ColorManager.offWhite,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: ColorManager.darkOrange),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: Icon(Icons.arrow_back, color: ColorManager.pinkk),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           "Login",
@@ -99,153 +97,161 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Image.asset(
-                  AssetsManager.photo2,
-                  height: 200.h,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-                SizedBox(height: 20.h),
-                Text(
-                  "Welcome Back!",
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    color: ColorManager.black,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  "Log in to manage your child's learning adventure with Kidzooo.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: ColorManager.oldGrey,
-                  ),
-                ),
-                SizedBox(height: 25.h),
 
-                TextFormField(
-                  controller: emailOrNameController,
-                  validator: (value) =>
-                  value == null || value.isEmpty ? "This field is required" : null,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.person, color: ColorManager.oldGrey),
-                    hintText: "Email or Child's Name",
-                    labelText: "Email / Name",
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15.r),
-                      borderSide: BorderSide.none,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(AssetsManager.cover),
+            fit: BoxFit.cover,
+          ),
+        ),
+
+        child: SingleChildScrollView(
+          child: Padding(
+            padding:
+            EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Image.asset(
+                    AssetsManager.girl,
+                    height: 280.h,
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  Text(
+                    "Welcome Back!",
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                SizedBox(height: 15.h),
 
-                TextFormField(
-                  controller: passwordController,
-                  obscureText: !passwordVisible, // ← استخدام المتغير
-                  validator: (value) =>
-                  value == null || value.isEmpty ? "Password is required" : null,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.lock, color: ColorManager.oldGrey),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        passwordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: ColorManager.grey,
+                  SizedBox(height: 8.h),
+
+                  Text(
+                    "Log in to manage your child's learning adventure with Kidzooo.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: ColorManager.oldGrey,
+                    ),
+                  ),
+
+                  SizedBox(height: 25.h),
+
+                  /// Email
+                  TextFormField(
+                    controller: emailOrNameController,
+                    validator: (value) =>
+                    value!.isEmpty ? "Required" : null,
+                    decoration: InputDecoration(
+
+                      prefixIcon: Icon(Icons.person),
+                      hintText: "Email or Child Name",
+                      filled: true,
+                      fillColor: ColorManager.ff,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        borderSide: BorderSide.none,
                       ),
+                    ),
+                  ),
+
+                  SizedBox(height: 15.h),
+
+                  /// Password
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: !passwordVisible,
+                    validator: (value) =>
+                    value!.isEmpty ? "Required" : null,
+                    decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () {
+                          setState(() {
+                            passwordVisible = !passwordVisible;
+                          });
+                        },
+                      ),
+                      hintText: "********",
+                      filled: true,
+                      fillColor: ColorManager.ff,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.r),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
                       onPressed: () {
-                        setState(() {
-                          passwordVisible = !passwordVisible; // ← تبديل الحالة
-                        });
+                        GoRouter.of(context)
+                            .push(RoutesManager.kForgetPass);
                       },
-                    ),
-                    hintText: "********",
-                    labelText: "Password",
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15.r),
-                      borderSide: BorderSide.none,
+                      child: Text("Forgot Password?",style: TextStyle(
+                        color: ColorManager.pinkk
+                      ),),
                     ),
                   ),
-                ),
-                SizedBox(height: 10.h),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      GoRouter.of(context).push(RoutesManager.kForgetPass);
-                    },
-                    child: Text(
-                      "Forgot Password?",
-                      style: TextStyle(
-                        color: ColorManager.mshmsh,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 15.h),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : loginUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorManager.mshmsh,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30.r),
-                      ),
-                    ),
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      "Login",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 15.h),
+                  SizedBox(height: 10.h),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: TextStyle(fontSize: 14.sp, color: ColorManager.oldGrey),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        GoRouter.of(context).push(RoutesManager.kSignUpForParent);
-                      },
-                      child: Text(
-                        "Sign Up",
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: ColorManager.mshmsh,
-                          fontWeight: FontWeight.bold,
+                  /// Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : loginUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ColorManager.pinkk,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30.r),
                         ),
                       ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(
+                          color: Colors.white)
+                          :  Text("Login",style: TextStyle(
+                        color: Colors.white
+                      ),),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+
+                  SizedBox(height: 15.h),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Don't have an account? "),
+                      GestureDetector(
+                        onTap: () {
+                          GoRouter.of(context).push(
+                              RoutesManager.kSignUpForParent);
+                        },
+                        child: Text(
+                          "Sign Up",
+                          style: TextStyle(
+                            color: ColorManager.pinkk,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class GamesScreen extends StatelessWidget {
-  const GamesScreen({super.key});
+class ChildProfile extends StatelessWidget {
+  const ChildProfile({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
+      appBar: AppBar(),
     );
   }
 }

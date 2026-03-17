@@ -20,7 +20,7 @@ class ForgetPasswordVarification extends StatelessWidget {
           },
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: ColorManager.orange,
+            color: ColorManager.pinkk,
           ),
         ),
         centerTitle: true,
@@ -91,7 +91,7 @@ class ForgetPasswordVarification extends StatelessWidget {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(18.r),
                         borderSide: BorderSide(
-                          color: ColorManager.orange,
+                          color: ColorManager.pinkk,
                           width: 2,
                         ),
                       ),
@@ -117,7 +117,7 @@ class ForgetPasswordVarification extends StatelessWidget {
                   "Resend in 00:59",
                   style: TextStyle(
                     fontSize: 13.sp,
-                    color: ColorManager.orange,
+                    color: ColorManager.pinkk,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -131,7 +131,7 @@ class ForgetPasswordVarification extends StatelessWidget {
               height: 55.h,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorManager.orange,
+                  backgroundColor: ColorManager.pinkk,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.r),
                   ),

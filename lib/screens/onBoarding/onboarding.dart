@@ -20,8 +20,8 @@ class _OnboardingState extends State<Onboarding> {
   final PageController controller = PageController();
 
   List<String> images = [
-    AssetsManager.onBoarding1,
-    AssetsManager.onBoarding2,
+    AssetsManager.kids,
+    AssetsManager.family,
   ];
 
   List<String> titles = [
@@ -37,11 +37,9 @@ class _OnboardingState extends State<Onboarding> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ColorManager.white,
 
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
         elevation: 0,
 
         leading: currentIndex == 1
@@ -61,7 +59,6 @@ class _OnboardingState extends State<Onboarding> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-
             SizedBox(width: 6.w),
             Text("Kidzooo", style: AppStyle.kidzoo),
           ],
@@ -85,122 +82,131 @@ class _OnboardingState extends State<Onboarding> {
             : [],
       ),
 
-      body: Column(
-        children: [
 
-          Expanded(
-            child: PageView.builder(
-              controller: controller,
-              itemCount: images.length,
-              onPageChanged: (index) {
-                setState(() {
-                  currentIndex = index;
-                });
-              },
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 20.h),
+      body: Container(
 
-                      Image.asset(
-                        images[index],
-                        height: 280.h,
-                      ),
-
-                      SizedBox(height: 30.h),
-
-                      Text(
-                        titles[index],
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 25.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      SizedBox(height: 16.h),
-
-                      Text(
-                        descriptions[index],
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: ColorManager.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            fit: BoxFit.fill,
+            image: AssetImage(AssetsManager.cover2),
           ),
+        ),
 
-          /// DOTS
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              images.length,
-                  (index) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: EdgeInsets.symmetric(horizontal: 4.w),
-                width: currentIndex == index ? 20.w : 8.w,
-                height: 8.h,
-                decoration: BoxDecoration(
-                  color: currentIndex == index
-                      ? ColorManager.red
-                      : ColorManager.orange,
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-              ),
-            ),
-          ),
+        child: Column(
+          children: [
 
-          SizedBox(height: 30.h),
-
-          /// BUTTON
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
-            child: SizedBox(
-              width: double.infinity,
-              height: 55.h,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: currentIndex == 0
-                      ? ColorManager.red
-                      : ColorManager.orange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                  ),
-                  elevation: 6,
-                ),
-                onPressed: () {
-                  if (currentIndex == images.length - 1) {
-                    GoRouter.of(context).push(RoutesManager.kWelcomeScreen);
-                  } else {
-                    controller.nextPage(
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.easeInOut,
-                    );
-                  }
+            Expanded(
+              child: PageView.builder(
+                controller: controller,
+                itemCount: images.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    currentIndex = index;
+                  });
                 },
-                child: Text(
-                  currentIndex == images.length - 1
-                      ? "Get Started"
-                      : "Next",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp,
-                    color: ColorManager.white,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 20.h),
+                        Image.asset(
+                          images[index],
+                          height: 280.h,
+                        ),
+
+                        SizedBox(height: 30.h),
+
+                        Text(
+                          titles[index],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 25.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        SizedBox(height: 16.h),
+
+                        Text(
+                          descriptions[index],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: ColorManager.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            /// DOTS
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                images.length,
+                    (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(horizontal: 4.w),
+                  width: currentIndex == index ? 20.w : 8.w,
+                  height: 8.h,
+                  decoration: BoxDecoration(
+                    color: ColorManager.pinkk,
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
                 ),
               ),
             ),
-          ),
 
-          SizedBox(height: 40.h),
-        ],
+            SizedBox(height: 30.h),
+
+            /// BUTTON
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: SizedBox(
+                width: double.infinity,
+                height: 55.h,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: currentIndex == 0
+                        ? ColorManager.pinkk
+                        : ColorManager.pinkk,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.r),
+                    ),
+                    elevation: 6,
+                  ),
+                  onPressed: () {
+                    if (currentIndex == images.length - 1) {
+                      GoRouter.of(context)
+                          .push(RoutesManager.kWelcomeScreen);
+                    } else {
+                      controller.nextPage(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Text(
+                    currentIndex == images.length - 1
+                        ? "Get Started"
+                        : "Next",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp,
+                      color: ColorManager.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 40.h),
+          ],
+        ),
       ),
     );
   }

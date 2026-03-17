@@ -19,4 +19,9 @@ class ColorManager{
   static Color oldGrey = Color(0xFF6B7280);
 
 
+
+  static Color pinkk = Color(0xFFFF9182);
+  static Color ff = Color(0xFFFFCFC8);
+
+
 }
