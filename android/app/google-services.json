@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "814494985327",
+    "project_id": "kidzoo-project",
+    "storage_bucket": "kidzoo-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:814494985327:android:7720d854c60ccc847d719a",
+        "android_client_info": {
+          "package_name": "com.example.kids_app_grad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5YPrOBumcGvB0rwnIZTNlkdpYxLpzW0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

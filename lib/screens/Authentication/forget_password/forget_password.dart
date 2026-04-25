@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:kids_app_grad/utils/colors_manager.dart';
 import 'package:kids_app_grad/utils/routes_manager.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kids_app_grad/utils/api_constants.dart';
 
 class ForgetPassword extends StatefulWidget {
   const ForgetPassword({super.key});
@@ -14,7 +16,6 @@ class ForgetPassword extends StatefulWidget {
 
 class _ForgetPasswordState extends State<ForgetPassword> {
   final TextEditingController emailController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool isLoading = false;
 
   void sendResetCode() async {
@@ -28,14 +29,28 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     setState(() => isLoading = true);
 
     try {
-      await _auth.sendPasswordResetEmail(email: emailController.text.trim());
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Reset email sent! Check your inbox.")),
+      final response = await http.post(
+        Uri.parse("${ApiConstants.baseUrl}/parent/forgot-password"),
+        headers: {'Accept': 'application/json'},
+        body: {'email': emailController.text.trim()},
       );
-      GoRouter.of(context).push(RoutesManager.kForgetPassVarification);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? "OTP sent successfully")),
+        );
+        // التوجيه لشاشة التأكد من الكود
+        GoRouter.of(context).push(RoutesManager.kForgetPassVarification, extra: emailController.text.trim());
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? "Error occurred")),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        const SnackBar(content: Text("Connection error")),
       );
     } finally {
       setState(() => isLoading = false);
@@ -50,23 +65,13 @@ class _ForgetPasswordState extends State<ForgetPassword> {
         backgroundColor: ColorManager.offWhite,
         elevation: 0,
         leading: IconButton(
-          onPressed: () {
-            GoRouter.of(context).push(RoutesManager.kLoginForParent);
-          },
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: ColorManager.pinkk,
-            size: 22,
-          ),
+          onPressed: () => GoRouter.of(context).push(RoutesManager.kLoginForParent),
+          icon: Icon(Icons.arrow_back_ios_new, color: ColorManager.pinkk, size: 22),
         ),
         centerTitle: true,
         title: Text(
           "Recovery",
-          style: TextStyle(
-            color: ColorManager.black,
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(color: ColorManager.black, fontSize: 20.sp, fontWeight: FontWeight.w700),
         ),
       ),
       body: SingleChildScrollView(
@@ -79,102 +84,43 @@ class _ForgetPasswordState extends State<ForgetPassword> {
               Text(
                 "Forget Your Password",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: ColorManager.black,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 24.sp,
-                ),
+                style: TextStyle(color: ColorManager.black, fontWeight: FontWeight.w800, fontSize: 24.sp),
               ),
               SizedBox(height: 20.h),
               Text(
-                "No worries! It happens to the best of us. Enter\n"
-                    "your registered email below and we’ll send\n"
-                    "you a recovery code",
+                "No worries! Enter your registered email below and we’ll send you a recovery code",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: ColorManager.brown.withOpacity(.6),
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: ColorManager.brown.withOpacity(.6), fontSize: 14.sp, fontWeight: FontWeight.w500),
               ),
               SizedBox(height: 50.h),
-
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  "Parent's Email Address",
-                  style: TextStyle(
-                    color: ColorManager.black,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: Text("Parent's Email Address", style: TextStyle(color: ColorManager.black, fontSize: 14.sp, fontWeight: FontWeight.w700)),
               ),
               SizedBox(height: 12.h),
-
               TextFormField(
                 controller: emailController,
                 decoration: InputDecoration(
                   hintText: "hello@example.com",
-                  hintStyle: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14.sp,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.email_outlined,
-                    color: ColorManager.pinkk,
-                  ),
+                  prefixIcon: Icon(Icons.email_outlined, color: ColorManager.pinkk),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: EdgeInsets.symmetric(vertical: 18.h),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: ColorManager.orange.withOpacity(.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: ColorManager.pinkk,
-                      width: 2,
-                    ),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(30.r), borderSide: BorderSide.none),
                 ),
               ),
-
               SizedBox(height: 40.h),
-
               SizedBox(
                 width: double.infinity,
                 height: 55.h,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ColorManager.pinkk,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.r),
-                    ),
-                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
                   ),
                   onPressed: isLoading ? null : sendResetCode,
                   child: isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Send Reset Code",
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(Icons.arrow_forward, color: Colors.white),
-                    ],
-                  ),
+                      : const Text("Send Reset Code", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

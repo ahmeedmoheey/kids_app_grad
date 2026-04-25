@@ -1,20 +1,65 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:kids_app_grad/utils/colors_manager.dart';
 import 'package:kids_app_grad/utils/routes_manager.dart';
+import 'package:kids_app_grad/utils/api_constants.dart';
 
 class SetNewPassword extends StatefulWidget {
-  const SetNewPassword({super.key});
+  final String resetToken;
+  const SetNewPassword({super.key, required this.resetToken});
 
   @override
   State<SetNewPassword> createState() => _SetNewPasswordState();
 }
 
 class _SetNewPasswordState extends State<SetNewPassword> {
-
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmController = TextEditingController();
   bool obscure1 = true;
   bool obscure2 = true;
+  bool isLoading = false;
+
+  void resetPassword() async {
+    if (passwordController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be 8+ characters")));
+      return;
+    }
+    if (passwordController.text != confirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("${ApiConstants.baseUrl}/parent/reset-password"),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${widget.resetToken}',
+        },
+        body: {
+          'password': passwordController.text.trim(),
+          'password_confirmation': confirmController.text.trim(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password reset successful!")));
+        GoRouter.of(context).push(RoutesManager.kLoginForParent);
+      } else {
+        final data = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? "Error resetting password")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connection error")));
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,22 +68,9 @@ class _SetNewPasswordState extends State<SetNewPassword> {
       appBar: AppBar(
         backgroundColor: ColorManager.offWhite,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: ColorManager.pinkk,
-          ),
-        ),
+        leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back_ios_new, color: ColorManager.pinkk)),
         centerTitle: true,
-        title: Text(
-          "Verification",
-          style: TextStyle(
-            color: ColorManager.black,
-            fontWeight: FontWeight.w700,
-            fontSize: 20.sp,
-          ),
-        ),
+        title: Text("Recovery", style: TextStyle(color: ColorManager.black, fontWeight: FontWeight.w700, fontSize: 20.sp)),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -46,240 +78,45 @@ class _SetNewPasswordState extends State<SetNewPassword> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-              SizedBox(height: 60.h),
-
-              /// Title
-              Center(
-                child: Text(
-                  "Create New Password",
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.w800,
-                    color: ColorManager.black,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 15.h),
-
-              /// Subtitle
-              Center(
-                child: Text(
-                  "Enter a new password to keep your\nchild's learning journey safe and secure.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: ColorManager.brown.withOpacity(.6),
-                  ),
-                ),
-              ),
-
               SizedBox(height: 40.h),
-
-              /// New Password Label
-              Text(
-                "New Password",
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.sp,
-                ),
-              ),
-
+              Center(child: Text("Create New Password", style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w800, color: ColorManager.black))),
+              SizedBox(height: 15.h),
+              Center(child: Text("Enter a new password to keep your journey safe.", textAlign: TextAlign.center, style: TextStyle(fontSize: 14.sp, color: ColorManager.brown.withOpacity(.6)))),
+              SizedBox(height: 40.h),
+              Text("New Password", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.sp)),
               SizedBox(height: 10.h),
-
-              /// New Password Field
               TextFormField(
+                controller: passwordController,
                 obscureText: obscure1,
                 decoration: InputDecoration(
                   hintText: "Min. 8 characters",
                   prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscure1
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        obscure1 = !obscure1;
-                      });
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.symmetric(vertical: 18.h),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: Colors.grey.withOpacity(.3),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: ColorManager.pinkk,
-                      width: 2,
-                    ),
-                  ),
+                  suffixIcon: IconButton(icon: Icon(obscure1 ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => obscure1 = !obscure1)),
+                  filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(30.r), borderSide: BorderSide.none),
                 ),
               ),
-
               SizedBox(height: 25.h),
-
-              /// Confirm Password Label
-              Text(
-                "Confirm Password",
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.sp,
-                ),
-              ),
-
+              Text("Confirm Password", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.sp)),
               SizedBox(height: 10.h),
-
-              /// Confirm Field
               TextFormField(
+                controller: confirmController,
                 obscureText: obscure2,
                 decoration: InputDecoration(
                   hintText: "Repeat password",
                   prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscure2
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        obscure2 = !obscure2;
-                      });
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.symmetric(vertical: 18.h),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: Colors.grey.withOpacity(.3),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.r),
-                    borderSide: BorderSide(
-                      color: ColorManager.pinkk,
-                      width: 2,
-                    ),
-                  ),
+                  suffixIcon: IconButton(icon: Icon(obscure2 ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => obscure2 = !obscure2)),
+                  filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(30.r), borderSide: BorderSide.none),
                 ),
               ),
-
-              SizedBox(height: 25.h),
-
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 12.w, vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(.1),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.cancel,
-                            size: 16,
-                            color: Colors.red),
-                        SizedBox(width: 6.w),
-                        Text(
-                          "8+ Characters",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 12.w, vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(.15),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            size: 16,
-                            color: Colors.grey),
-                        SizedBox(width: 6.w),
-                        Text(
-                          "1 Number",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
               SizedBox(height: 40.h),
-
-              /// Verify Button
               SizedBox(
-                width: double.infinity,
-                height: 55.h,
+                width: double.infinity, height: 55.h,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ColorManager.pinkk,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.r),
-                    ),
-                    elevation: 4,
-                  ),
-                  onPressed: () {
-                    GoRouter.of(context).push(RoutesManager.kLoginForParent);
-                  },
-                  child: Text(
-                    "Verify",
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: ColorManager.pinkk, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r))),
+                  onPressed: isLoading ? null : resetPassword,
+                  child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Reset Password", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
-
-              SizedBox(height: 30.h),
-
-              /// Bottom Text
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lock_outline,
-                        size: 16,
-                        color: Colors.grey),
-                    SizedBox(width: 6.w),
-                    Text(
-                      "Secure parent-only access verification",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 20.h),
             ],
           ),
         ),

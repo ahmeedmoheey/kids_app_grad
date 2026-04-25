@@ -87,8 +87,8 @@ class _OnboardingState extends State<Onboarding> {
 
         decoration: BoxDecoration(
           image: DecorationImage(
-            fit: BoxFit.fill,
-            image: AssetImage(AssetsManager.cover2),
+            fit: BoxFit.cover,
+            image: AssetImage(AssetsManager.backGround),
           ),
         ),
 
