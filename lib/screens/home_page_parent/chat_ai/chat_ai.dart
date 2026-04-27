@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kids_app_grad/utils/api_constants.dart';
 import 'package:kids_app_grad/utils/assets_manager.dart';
 import 'package:kids_app_grad/utils/colors_manager.dart';
+import 'package:kids_app_grad/utils/routes_manager.dart';
 import 'bot_message.dart';
 import 'user_message.dart';
 import 'bot_typing.dart';
@@ -22,10 +26,19 @@ class _ChatAiState extends State<ChatAi> {
   final ScrollController scrollController = ScrollController();
   List<Map<String, String>> messages = [];
   bool isTyping = false;
+  String userType = 'child';
 
   @override
   void initState() {
     super.initState();
+    _initUserType();
+  }
+
+  Future<void> _initUserType() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userType = prefs.getString('user_type') ?? 'child';
+    });
     fetchChatHistory();
   }
 
@@ -38,33 +51,58 @@ class _ChatAiState extends State<ChatAi> {
     }
   }
 
+  Future<void> _handleUnauthorized() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // مسح التوكن وكل البيانات
+    if (mounted) {
+      context.go(RoutesManager.kWelcomeScreen);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please login again.")),
+      );
+    }
+  }
+
   Future<void> fetchChatHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final response = await http.get(Uri.parse(ApiConstants.chatbotHistory),
+          
+      final url = (userType == 'parent') 
+          ? ApiConstants.parentChatbotHistory 
+          : ApiConstants.chatbotHistory;
+
+      final response = await http.get(Uri.parse(url),
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer $token',
-          });
+          }).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List history = data['messages'] ?? [];
         setState(() {
-          messages = history.map<Map<String, String>>((m) => {
-                "role": m['role'] == 'user' ? 'user' : 'ai',
-                "text": m['message'].toString()
-              }).toList();
+          messages = history.map<Map<String, String>>((m) {
+            String role = m['role']?.toString().toLowerCase() ?? 'bot';
+            String internalRole = (role == 'user') ? 'user' : 'bot';
+            return {
+              "role": internalRole,
+              "text": m['message'] ?? m['text'] ?? ""
+            };
+          }).toList();
         });
         scrollToBottom();
+      } else if (response.statusCode == 401) {
+        await _handleUnauthorized();
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Error fetching history: $e");
+    }
   }
 
   void sendMessage() async {
     String text = controller.text.trim();
     if (text.isEmpty) return;
+    
     setState(() {
       messages.add({"role": "user", "text": text});
       controller.clear();
@@ -75,37 +113,69 @@ class _ChatAiState extends State<ChatAi> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
+          
+      final url = (userType == 'parent') 
+          ? ApiConstants.parentChatbotSend 
+          : ApiConstants.chatbotSend;
+
       final response = await http.post(
-        Uri.parse(ApiConstants.chatbotSend),
+        Uri.parse(url),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({'message': text}), 
-      );
+      ).timeout(const Duration(seconds: 20));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      if (response.statusCode == 401) {
+        await _handleUnauthorized();
+        return;
+      }
+
+      final data = json.decode(response.body);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        String replyText = "";
         
-        // استخراج الرد بناءً على الـ JSON اللي بعتهولي بالظبط
-        String reply = "...";
-        if (data['message'] != null && data['message'] is Map) {
-          reply = data['message']['message'] ?? "I am here!";
-        } else if (data['reply'] != null) {
-          reply = data['reply'];
+        if (data['reply'] != null) {
+          replyText = data['reply'].toString();
+        } else if (data['message'] != null) {
+          if (data['message'] is Map && data['message']['message'] != null) {
+            replyText = data['message']['message'].toString();
+          } else {
+            replyText = data['message'].toString();
+          }
         }
 
         setState(() {
           isTyping = false;
-          messages.add({"role": "ai", "text": reply});
+          if (replyText.isNotEmpty) {
+            messages.add({"role": "bot", "text": replyText});
+          }
         });
       } else {
-        setState(() => isTyping = false);
+        setState(() {
+          isTyping = false;
+          String errorMsg = data['message'] ?? "Error ${response.statusCode}";
+          messages.add({"role": "bot", "text": errorMsg});
+        });
       }
+    } on TimeoutException {
+      setState(() {
+        isTyping = false;
+        messages.add({"role": "bot", "text": "AI provider timeout. Please try again."});
+      });
+    } on SocketException {
+      setState(() {
+        isTyping = false;
+        messages.add({"role": "bot", "text": "No internet connection or server unavailable."});
+      });
     } catch (e) {
-      setState(() => isTyping = false);
+      setState(() {
+        isTyping = false;
+        messages.add({"role": "bot", "text": "Something went wrong. Please try again later."});
+      });
     }
     scrollToBottom();
   }
@@ -116,13 +186,22 @@ class _ChatAiState extends State<ChatAi> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white, elevation: 0.5,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.grey), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(userType == 'parent' ? RoutesManager.kHomePageParent : RoutesManager.kHomeScreen);
+            }
+          },
+        ),
         title: Row(
           children: [
             Stack(
               alignment: Alignment.bottomRight,
               children: [
-                CircleAvatar(radius: 20.r, backgroundColor: ColorManager.ff, child: Icon(Icons.android, color: ColorManager.pinkk)),
+                CircleAvatar(radius: 20.r, backgroundColor: ColorManager.ff, child: Icon(userType == 'parent' ? Icons.support_agent : Icons.android, color: ColorManager.pinkk)),
                 CircleAvatar(radius: 5.r, backgroundColor: Colors.green, child: Container()),
               ],
             ),
@@ -145,7 +224,9 @@ class _ChatAiState extends State<ChatAi> {
                 itemBuilder: (context, index) {
                   if (isTyping && index == messages.length) return const BotTyping();
                   final msg = messages[index];
-                  return msg["role"] == "user" ? UserMessage(text: msg["text"]!) : BotMessage(text: msg["text"]!);
+                  return msg["role"] == "user" 
+                    ? UserMessage(text: msg["text"] ?? "") 
+                    : BotMessage(text: msg["text"] ?? "");
                 },
               ),
             ),

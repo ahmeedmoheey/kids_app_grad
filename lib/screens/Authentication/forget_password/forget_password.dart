@@ -29,11 +29,18 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     setState(() => isLoading = true);
 
     try {
+      print("Calling API: ${ApiConstants.parentForgotPassword}");
       final response = await http.post(
-        Uri.parse("${ApiConstants.baseUrl}/parent/forgot-password"),
-        headers: {'Accept': 'application/json'},
-        body: {'email': emailController.text.trim()},
+        Uri.parse(ApiConstants.parentForgotPassword),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'email': emailController.text.trim()}),
       );
+
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
       final data = json.decode(response.body);
 
@@ -49,6 +56,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
         );
       }
     } catch (e) {
+      print("Exception: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Connection error")),
       );

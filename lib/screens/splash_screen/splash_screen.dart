@@ -25,9 +25,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _handleStartUp() async {
-    // الانتظار لعرض اللوجو
     await Future.delayed(const Duration(seconds: 2));
-    
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('token');
     final String? userType = prefs.getString('user_type');
@@ -37,40 +35,55 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    // لو طفل، يدخل يلعب علطول
     if (userType == 'child') {
       if (mounted) GoRouter.of(context).go(RoutesManager.kHomeScreen);
       return;
     }
 
-    // لو أب، نكلم السيرفر نشوف عنده أطفال ولا لأ
-    try {
-      final response = await http.get(
-        Uri.parse(ApiConstants.parentMe),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 10));
+    // تعديل: إذا كان المستخدم أباً، نوجهه دائماً لصفحة الأب الرئيسية (التي تحتوي الداش بورد والـ AI)
+    if (userType == 'parent') {
+      try {
+        final response = await http.get(
+          Uri.parse(ApiConstants.parentMe),
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ).timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        bool hasChildren = data['has_children'] ?? false;
-        await prefs.setString('user_data', json.encode(data['user']));
-
-        if (mounted) {
-          if (hasChildren) {
-            GoRouter.of(context).go(RoutesManager.kHomePageParent);
-          } else {
-            GoRouter.of(context).go(RoutesManager.kSignUpForChild);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['user'] != null) {
+            await prefs.setString('user_data', json.encode(data['user']));
           }
+          if (mounted) GoRouter.of(context).go(RoutesManager.kHomePageParent);
+        } else if (response.statusCode == 403) {
+          // الحساب غير مفعل
+          final String? userDataStr = prefs.getString('user_data');
+          String? email;
+          if (userDataStr != null) {
+            try {
+              final userData = json.decode(userDataStr);
+              email = userData['email'];
+            } catch (_) {}
+          }
+          if (mounted) {
+            if (email != null) {
+              context.go(RoutesManager.kForgetPassVarification, extra: email);
+            } else {
+              context.go(RoutesManager.kWelcomeScreen);
+            }
+          }
+        } else {
+          if (mounted) GoRouter.of(context).go(RoutesManager.kHomePageParent);
         }
-      } else {
-        if (mounted) GoRouter.of(context).go(RoutesManager.kWelcomeScreen);
+      } catch (e) {
+        if (mounted) GoRouter.of(context).go(RoutesManager.kHomePageParent);
       }
-    } catch (e) {
-      if (mounted) GoRouter.of(context).go(RoutesManager.kWelcomeScreen);
+      return;
     }
+
+    if (mounted) GoRouter.of(context).go(RoutesManager.kWelcomeScreen);
   }
 
   @override
@@ -79,26 +92,13 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          color: ColorManager.pink,
-        ),
+        decoration: BoxDecoration(color: ColorManager.pink),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              AssetsManager.logo,
-              color: ColorManager.white,
-              width: 200.w,
-            ),
+            Image.asset(AssetsManager.logo, color: ColorManager.white, width: 200.w),
             SizedBox(height: 10.h),
-            Text(
-              "Learn. Play. Grow.",
-              style: TextStyle(
-                color: ColorManager.white,
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text("Learn. Play. Grow.", style: TextStyle(color: ColorManager.white, fontSize: 20.sp, fontWeight: FontWeight.bold)),
             SizedBox(height: 40.h),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 50),
@@ -112,13 +112,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             SizedBox(height: 20.h),
-            const Text(
-              "Loading your adventure...",
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.white70,
-              ),
-            ),
+            const Text("Loading your adventure...", style: TextStyle(fontSize: 15, color: Colors.white70)),
           ],
         ),
       ),

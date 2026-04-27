@@ -56,41 +56,57 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
   Future<void> _startSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = prefs.getString('child_token') ?? prefs.getString('token');
+      
       final response = await http.post(
         Uri.parse(ApiConstants.sessionStart),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
-        body: {'game_id': '4', 'level': level.toString(), 'difficulty_level': 'Medium'},
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+        body: json.encode({
+          'game_id': 4, 
+          'level': 1, 
+          'difficulty_level': 'Medium'
+        }),
       );
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         sessionId = data['session']['id'];
-        startTime = DateTime.now();
       }
     } catch (e) {}
   }
 
   Future<void> _submitTrial(bool correct) async {
-    if (sessionId == 0) return;
+    if (sessionId == 0 || startTime == null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      int duration = DateTime.now().difference(startTime!).inSeconds;
+      final token = prefs.getString('child_token') ?? prefs.getString('token');
+      
+      // Calculate duration in milliseconds for higher precision
+      int durationMs = DateTime.now().difference(startTime!).inMilliseconds;
+      double durationSec = durationMs / 1000.0;
+      
       await http.post(
         Uri.parse(ApiConstants.sessionTrial(sessionId)),
-        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
-        body: {
-          'trial_number': level.toString(),
-          'task_type': 'ShapeMatching',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+        body: json.encode({
+          'trial_number': level,
+          'task_type': 'Matching',
           'difficulty_level': 'Medium',
           'target_type': 'Shape',
-          'stimulus_count': targets.length.toString(),
-          'reaction_time_ms': (duration * 1000).toString(),
-          'correct': correct ? '1' : '0',
-          'errors': errorsInLevel.toString(),
-          'missed_targets': '0',
-          'duration_sec': duration.toString(),
-        },
+          'stimulus_count': targets.length,
+          'reaction_time_ms': durationMs,
+          'correct': correct,
+          'errors': errorsInLevel,
+          'missed_targets': 0,
+          'duration_sec': durationSec,
+        }),
       );
     } catch (e) {}
   }
@@ -99,9 +115,21 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
     if (sessionId == 0) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      await http.post(Uri.parse(ApiConstants.sessionEnd(sessionId)),
-          headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'});
+      final token = prefs.getString('child_token') ?? prefs.getString('token');
+      
+      final response = await http.post(
+        Uri.parse(ApiConstants.sessionEnd(sessionId)),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        debugPrint("AI Prediction: ${data['prediction']}");
+      }
     } catch (e) {}
   }
 
@@ -120,6 +148,8 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
     shapes = allOptions.take(count).toList();
     targets = List.from(shapes)..shuffle();
     if (mounted) setState(() {});
+    // Start timing ONLY when the level is ready for the child
+    startTime = DateTime.now();
   }
 
   void checkMatch(ShapeModel dragged, ShapeModel target) {
@@ -127,6 +157,9 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
       HapticFeedback.mediumImpact();
       successController.forward(from: 0);
       setState(() { target.isMatched = true; });
+      
+      // For children, we track time per individual successful match if needed,
+      // but here we submit the completion of the trial/level.
       if (targets.every((t) => t.isMatched)) {
         _submitTrial(true);
         if (level >= maxLevels) {
@@ -136,7 +169,10 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
         } else {
           Future.delayed(const Duration(milliseconds: 1000), () {
             if (mounted) {
-              setState(() { level++; generateLevel(); startTime = DateTime.now(); });
+              setState(() { 
+                level++; 
+                generateLevel(); 
+              });
             }
           });
         }
@@ -149,12 +185,46 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
   }
 
   void _showFinishDialog() {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.r)),
-      title: const Text("🎉 15 Levels Completed!", textAlign: TextAlign.center),
-      content: const Text("Great Job! Your progress has been sent for analysis.", textAlign: TextAlign.center),
-      actions: [Center(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: ColorManager.pinkk, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r))), onPressed: () => context.go(RoutesManager.kHomeScreen), child: const Text("Finish Game", style: TextStyle(color: Colors.white))))],
-    ));
+    showDialog(
+      context: context, 
+      barrierDismissible: false, 
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.r)),
+        title: const Text("🏆 بطل خارق! 🏆", 
+          textAlign: TextAlign.center, 
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.orange)
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("🎉 مبروك يا بطل! 🎉", 
+              textAlign: TextAlign.center, 
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+            ),
+            SizedBox(height: 10.h),
+            const Text("أنت خلصت كل المستويات بذكاء كبير.. أنا فخور بيك جداً! ⭐", 
+              textAlign: TextAlign.center, 
+              style: TextStyle(fontSize: 16)
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorManager.pinkk, 
+                padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 10.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r))
+              ), 
+              onPressed: () => context.go(RoutesManager.kHomeScreen), 
+              child: const Text("الرجوع للرئيسية", 
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+              )
+            ),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -170,7 +240,7 @@ class _ShapeGameScreenState extends State<ShapeGameScreen> with TickerProviderSt
       backgroundColor: const Color(0xffFDFBF7),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        leading: IconButton(icon: Icon(Icons.close, color: ColorManager.orange, size: 28.sp), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: Icon(Icons.close, color: ColorManager.orange, size: 28.sp), onPressed: () => context.go(RoutesManager.kHomeScreen)),
         title: Text("LEVEL $level / $maxLevels", style: TextStyle(color: Colors.orange, fontSize: 18.sp, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),

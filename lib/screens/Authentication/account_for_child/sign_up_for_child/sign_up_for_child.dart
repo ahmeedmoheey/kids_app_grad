@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kids_app_grad/utils/assets_manager.dart';
 import 'package:kids_app_grad/utils/routes_manager.dart';
 import 'package:kids_app_grad/utils/api_constants.dart';
+import 'package:kids_app_grad/utils/colors_manager.dart';
+import 'package:kids_app_grad/utils/ui_helpers.dart';
 
 class SignUpForChild extends StatefulWidget {
   final String parentId;
@@ -17,84 +19,77 @@ class SignUpForChild extends StatefulWidget {
 }
 
 class _SignUpForChildState extends State<SignUpForChild> {
-  int age = 4;
-  int selectedAvatar = 0;
-  String selectedGender = "Boy";
-  bool obscurePassword = true;
-  bool isLoading = false;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  
+  int _age = 4;
+  int _selectedAvatar = 0;
+  String _selectedGender = "Boy";
+  bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
-  final List<String> avatars = [
+  final List<String> _avatars = [
     AssetsManager.avatar1,
     AssetsManager.avatar2,
     AssetsManager.avatar3,
     AssetsManager.avatar4,
   ];
 
-  final List<String> avatarNames = ["Ahmed", "Pola", "JOY", "Maha"];
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-  void saveChildProfile() async {
-    if (nameController.text.isEmpty || passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
+  Future<void> _saveChildProfile() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      // هبعت رابط وهمي عشان يعدي من الـ Laravel Validation
-      // لأن السيرفر بيطلب URL حقيقي
-      String dummyAvatarUrl = "https://example.com/avatars/avatar_${selectedAvatar + 1}.png";
+      // تجنب الهارد كود للـ Avatar URL، يفضل إرسال رقم الأفاتار أو المسار
+      String dummyAvatarUrl = "avatar_${_selectedAvatar + 1}";
 
       final response = await http.post(
-
         Uri.parse(ApiConstants.createChild),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: {
-          'name': nameController.text.trim(),
-          'username': nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
-          'password': passwordController.text.trim(),
-          'password_confirmation': passwordController.text.trim(),
-          'age': age.toString(),
-          'gender': selectedGender.toLowerCase(),
-          'avatar_url': dummyAvatarUrl, // بعتنا رابط وهمي
+          'name': _nameController.text.trim(),
+          'username': _nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
+          'password': _passwordController.text.trim(),
+          'password_confirmation': _passwordController.text.trim(),
+          'age': _age.toString(),
+          'gender': _selectedGender.toLowerCase(),
+          'avatar_url': dummyAvatarUrl,
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 201) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Child profile created successfully!')),
-          );
-          GoRouter.of(context).push(RoutesManager.kLoginForParent);
+          UIHelpers.showSuccessSnackBar(context, 'Child profile created successfully!');
+          context.go(RoutesManager.kHomePageParent); // العودة للداش بورد لرؤية الطفل الجديد
         }
       } else {
-        if (mounted) {
-          String message = data['message'] ?? 'Failed to create profile';
-          if (data['errors'] != null) {
-            message = data['errors'].values.first[0];
-          }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        String message = data['message'] ?? 'Failed to create profile';
+        if (data['errors'] != null) {
+          message = data['errors'].values.first[0];
         }
+        if (mounted) UIHelpers.showErrorDialog(context, message);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error')));
-      }
+      if (mounted) UIHelpers.showErrorDialog(context, 'Connection error. Please try again.');
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -106,125 +101,177 @@ class _SignUpForChildState extends State<SignUpForChild> {
         elevation: 0,
         centerTitle: true,
         backgroundColor: const Color(0xFFF8F5F4),
-        title: const Text("Create Profile", style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text("Create Profile", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Pick a Buddy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(avatars.length, (index) {
-                return GestureDetector(
-                  onTap: () => setState(() => selectedAvatar = index),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: selectedAvatar == index ? const Color(0xFFF4A896) : Colors.transparent, width: 3),
-                        ),
-                        child: CircleAvatar(radius: 30, backgroundColor: Colors.white, backgroundImage: AssetImage(avatars[index])),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(avatarNames[index], style: TextStyle(color: selectedAvatar == index ? const Color(0xFFF4A896) : Colors.grey)),
-                    ],
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 30),
-            const Text("What's their name?", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                hintText: "Enter child's name",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text("Set Password", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: passwordController,
-              obscureText: obscurePassword,
-              decoration: InputDecoration(
-                hintText: "Enter password",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                suffixIcon: IconButton(
-                  icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFF4A896)),
-                  onPressed: () => setState(() => obscurePassword = !obscurePassword),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text("How old are they?", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(40)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle("Pick a Buddy"),
+              const SizedBox(height: 15),
+              _buildAvatarPicker(),
+              const SizedBox(height: 30),
+              _buildSectionTitle("What's their name?"),
+              const SizedBox(height: 10),
+              _buildNameField(),
+              const SizedBox(height: 20),
+              _buildSectionTitle("Set Password"),
+              const SizedBox(height: 10),
+              _buildPasswordField(),
+              const SizedBox(height: 30),
+              _buildSectionTitle("How old are they?"),
+              const SizedBox(height: 10),
+              _buildAgePicker(),
+              const SizedBox(height: 30),
+              _buildSectionTitle("Gender"),
+              const SizedBox(height: 15),
+              Row(
                 children: [
-                  CircleAvatar(backgroundColor: const Color(0xFFF4A896), child: IconButton(icon: const Icon(Icons.remove, color: Colors.white), onPressed: () => age > 1 ? setState(() => age--) : null)),
-                  Text("$age", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  CircleAvatar(backgroundColor: const Color(0xFFF4A896), child: IconButton(icon: const Icon(Icons.add, color: Colors.white), onPressed: () => setState(() => age++))),
+                  Expanded(child: _buildGenderCard(AssetsManager.male, "Boy")),
+                  const SizedBox(width: 15),
+                  Expanded(child: _buildGenderCard(AssetsManager.female, "Girl")),
                 ],
               ),
-            ),
-            const SizedBox(height: 30),
-            const Text("Gender (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            Row(
-              children: [
-                Expanded(child: genderCard(AssetsManager.male, "Boy")),
-                const SizedBox(width: 15),
-                Expanded(child: genderCard(AssetsManager.female, "Girl")),
-              ],
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF4A896), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                onPressed: isLoading ? null : saveChildProfile,
-                child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Save Profile", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 40),
+              _buildSubmitButton(),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16));
+  }
+
+  Widget _buildAvatarPicker() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(_avatars.length, (index) {
+        return GestureDetector(
+          onTap: () => setState(() => _selectedAvatar = index),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _selectedAvatar == index ? ColorManager.pinkk : Colors.transparent, width: 3),
+                ),
+                child: CircleAvatar(radius: 30, backgroundColor: Colors.white, backgroundImage: AssetImage(_avatars[index])),
               ),
-            ),
+              const SizedBox(height: 5),
+              Text("Buddy ${index + 1}", style: TextStyle(color: _selectedAvatar == index ? ColorManager.pinkk : Colors.grey, fontSize: 12)),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildNameField() {
+    return TextFormField(
+      controller: _nameController,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Name is required';
+        if (value.length < 3) return 'Name must be at least 3 characters';
+        return null;
+      },
+      decoration: InputDecoration(
+        hintText: "Enter child's name",
+        prefixIcon: const Icon(Icons.person_outline),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Password is required';
+        if (value.length < 6) return 'Password must be at least 6 characters';
+        return null;
+      },
+      decoration: InputDecoration(
+        hintText: "Enter password",
+        prefixIcon: const Icon(Icons.lock_outline),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+        suffixIcon: IconButton(
+          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: ColorManager.pinkk),
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAgePicker() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(40)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.remove_circle, color: ColorManager.pinkk, size: 30), 
+            onPressed: () => _age > 1 ? setState(() => _age--) : null
+          ),
+          Text("$_age", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          IconButton(
+            icon: Icon(Icons.add_circle, color: ColorManager.pinkk, size: 30), 
+            onPressed: () => _age < 18 ? setState(() => _age++) : null
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderCard(String image, String gender) {
+    final bool isSelected = _selectedGender == gender;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedGender = gender),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: isSelected ? ColorManager.pinkk : Colors.transparent, width: 2),
+        ),
+        child: Column(
+          children: [
+            SvgPicture.asset(image, height: 35, colorFilter: ColorFilter.mode(isSelected ? ColorManager.pinkk : Colors.grey, BlendMode.srcIn)),
+            const SizedBox(height: 8),
+            Text(gender, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? ColorManager.pinkk : Colors.grey)),
           ],
         ),
       ),
     );
   }
 
-  Widget genderCard(String image, String gender) {
-    final bool isSelected = selectedGender == gender;
-    return GestureDetector(
-      onTap: () => setState(() => selectedGender = gender),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: isSelected ? const Color(0xFFF4A896) : Colors.transparent, width: 2),
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ColorManager.pinkk, 
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          elevation: 2,
         ),
-        child: Column(
-          children: [
-            SvgPicture.asset(image, height: 40, colorFilter: ColorFilter.mode(isSelected ? const Color(0xFFF4A896) : Colors.grey, BlendMode.srcIn)),
-            const SizedBox(height: 10),
-            Text(gender, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? const Color(0xFFF4A896) : Colors.grey)),
-          ],
-        ),
+        onPressed: _isLoading ? null : _saveChildProfile,
+        child: _isLoading 
+          ? const CircularProgressIndicator(color: Colors.white) 
+          : const Text("Save Profile", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }

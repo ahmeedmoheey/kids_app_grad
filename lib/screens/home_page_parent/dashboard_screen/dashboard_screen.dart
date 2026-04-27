@@ -19,6 +19,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List children = [];
   bool isLoading = true;
   String parentName = "";
+  bool isEmpty = false;
+  String emptyStateMessage = "No analysis data found";
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
+      print("--- FETCHING CHILDREN DATA ---");
       final response = await http.get(
         Uri.parse(ApiConstants.listChildren),
         headers: {
@@ -52,22 +55,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
       );
 
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
           children = data['children'] ?? [];
+          isEmpty = data['is_empty'] ?? (children.isEmpty);
+          if (data['empty_state'] != null) {
+            emptyStateMessage = data['empty_state'];
+          }
           isLoading = false;
         });
+      } else {
+        setState(() => isLoading = false);
       }
     } catch (e) {
+      print("Error fetching children: $e");
       setState(() => isLoading = false);
     }
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (mounted) GoRouter.of(context).go(RoutesManager.kLoginForParent);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token != null) {
+        await http.post(
+          Uri.parse(ApiConstants.parentLogout),
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+      await prefs.clear();
+      if (mounted) GoRouter.of(context).go(RoutesManager.kLoginForParent);
+    } catch (e) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      if (mounted) GoRouter.of(context).go(RoutesManager.kLoginForParent);
+    }
   }
 
   @override
@@ -95,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SizedBox(height: 15.h),
               isLoading
                   ? const Center(child: Padding(padding: EdgeInsets.only(top: 50), child: CircularProgressIndicator()))
-                  : children.isEmpty
+                  : (children.isEmpty)
                       ? _buildEmptyState()
                       : ListView.builder(
                           shrinkWrap: true,
@@ -130,16 +159,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(height: 80.h),
           Icon(Icons.analytics_outlined, size: 80.sp, color: Colors.grey.withOpacity(0.5)),
           SizedBox(height: 16.h),
-          Text("No analysis data found", style: TextStyle(color: Colors.grey, fontSize: 16.sp)),
+          Text(emptyStateMessage, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16.sp)),
         ],
       ),
     );
   }
 
   Widget _buildChildCard(dynamic child) {
-    // جلب الحالة من الـ prediction لو موجودة
-    String status = "No Data";
-    Color statusColor = Colors.grey;
+    String status = "Waiting for Analysis";
+    Color statusColor = Colors.orange;
     
     if (child['latest_prediction'] != null) {
       status = child['latest_prediction']['status'] == 'normal' ? "Normal" : "Needs Review";
@@ -179,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       child: Text(
                         status, 
-                        style: TextStyle(color: statusColor, fontSize: 12.sp, fontWeight: FontWeight.bold)
+                        style: TextStyle(color: statusColor, fontSize: 11.sp, fontWeight: FontWeight.bold)
                       ),
                     ),
                   ],

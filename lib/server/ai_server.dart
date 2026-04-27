@@ -23,13 +23,15 @@ class AIService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['reply'] ?? (data['message'] != null ? data['message']['message'] : "No response from AI");
+        // قراءة الرد من الحقل reply أو هيكلية الـ message حسب رد السيرفر
+        if (data['reply'] != null) return data['reply'];
+        if (data['message'] != null && data['message'] is Map) return data['message']['message'];
+        return "Thinking...";
       } else {
-        final errorData = jsonDecode(response.body);
-        return "Error: ${errorData['message'] ?? 'Failed to get response'}";
+        return "Error: ${response.statusCode}";
       }
     } catch (e) {
-      return "Connection error: Please check your server.";
+      return "Connection error: Check your Server IP";
     }
   }
 }

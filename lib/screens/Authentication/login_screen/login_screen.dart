@@ -31,23 +31,34 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             UIHelpers.showSuccessSnackBar(context, state.message);
-            // التوجيه بناءً على البيانات اللي جاية في الـ Success
             if (state.userData != null) {
               bool isParent = emailOrNameController.text.contains('@');
               if (isParent) {
-                bool hasChildren = state.userData['has_children'] ?? false;
-                if (hasChildren) {
-                  context.go(RoutesManager.kHomePageParent);
-                } else {
-                  context.go(RoutesManager.kSignUpForChild);
-                }
+                // تعديل: التوجيه دائماً لصفحة الأب الرئيسية عند تسجيل الدخول
+                context.go(RoutesManager.kHomePageParent);
               } else {
                 context.go(RoutesManager.kHomeScreen);
               }
             }
           }
           if (state is AuthFailure) {
-            UIHelpers.showErrorDialog(context, state.error);
+            String displayError = state.error;
+            
+            if (displayError.toLowerCase().contains("not verified") || displayError.toLowerCase().contains("otp has been sent")) {
+               UIHelpers.showErrorDialog(context, "Your account is not verified yet. Redirecting to verification page...");
+               Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) {
+                    context.push(RoutesManager.kForgetPassVarification, extra: emailOrNameController.text.trim());
+                  }
+               });
+               return;
+            }
+
+            if (state.error.toLowerCase().contains("connection") || state.error.toLowerCase().contains("host")) {
+               displayError += "\n\nTip: Ensure Laravel is running with --host=0.0.0.0 and you are on the same Wi-Fi.";
+            }
+            
+            UIHelpers.showErrorDialog(context, displayError);
           }
         },
         child: Scaffold(
@@ -75,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 25.h),
                     TextFormField(
                       controller: emailOrNameController,
+                      validator: (v) => v!.isEmpty ? "Required" : null,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.person),
                         hintText: "Email or Child Name",
@@ -86,6 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: passwordController,
                       obscureText: !passwordVisible,
+                      validator: (v) => v!.isEmpty ? "Required" : null,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
@@ -100,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () => GoRouter.of(context).push(RoutesManager.kForgetPass),
+                        onPressed: () => context.push(RoutesManager.kForgetPass),
                         child: Text("Forgot Password?", style: TextStyle(color: ColorManager.pinkk)),
                       ),
                     ),

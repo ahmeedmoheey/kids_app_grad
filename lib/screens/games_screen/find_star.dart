@@ -19,10 +19,11 @@ class FindStar extends StatefulWidget {
 
 class _FindStarState extends State<FindStar> {
   int level = 1;
-  final int maxLevels = 20;
+  final int maxLevels = 10; // قللت المستويات لـ 10 عشان النتيجة تظهر أسرع للأب
   int sessionId = 0;
   DateTime? startTime;
   int errorsInLevel = 0;
+  bool isEnding = false;
 
   late Offset starPos;
   final Random rnd = Random();
@@ -34,6 +35,22 @@ class _FindStarState extends State<FindStar> {
     _generateStarPos();
   }
 
+  @override
+  void dispose() {
+    if (sessionId != 0 && !isEnding) {
+      _endSession(); // غلق الجلسة لو الطفل خرج فجأة
+    }
+    super.dispose();
+  }
+
+  Future<void> _handleUnauthorized() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      context.go(RoutesManager.kWelcomeScreen);
+    }
+  }
+
   Future<void> _startSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -43,10 +60,13 @@ class _FindStarState extends State<FindStar> {
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
         body: {'game_id': '5', 'level': level.toString(), 'difficulty_level': 'Medium'},
       );
+      
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         sessionId = data['session']['id'];
         startTime = DateTime.now();
+      } else if (response.statusCode == 401) {
+        _handleUnauthorized();
       }
     } catch (e) {}
   }
@@ -57,7 +77,8 @@ class _FindStarState extends State<FindStar> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       int duration = DateTime.now().difference(startTime!).inSeconds;
-      await http.post(
+      
+      final response = await http.post(
         Uri.parse(ApiConstants.sessionTrial(sessionId)),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
         body: {
@@ -73,11 +94,14 @@ class _FindStarState extends State<FindStar> {
           'duration_sec': duration.toString(),
         },
       );
+
+      if (response.statusCode == 401) _handleUnauthorized();
     } catch (e) {}
   }
 
   Future<void> _endSession() async {
     if (sessionId == 0) return;
+    isEnding = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -89,8 +113,7 @@ class _FindStarState extends State<FindStar> {
   void _generateStarPos() {
     setState(() {
       errorsInLevel = 0;
-      // توليد مكان عشوائي للنجمة داخل الشاشة
-      starPos = Offset(rnd.nextDouble() * 0.8 - 0.4, rnd.nextDouble() * 0.8 - 0.4);
+      starPos = Offset(rnd.nextDouble() * 1.6 - 0.8, rnd.nextDouble() * 1.2 - 0.6);
     });
   }
 
@@ -117,9 +140,18 @@ class _FindStarState extends State<FindStar> {
 
   void _showFinishDialog() {
     showDialog(context: context, barrierDismissible: false, builder: (_) => AlertDialog(
-      title: const Text("🌟 Superstar!"),
-      content: Text("You found all $maxLevels stars! You have eagle eyes!"),
-      actions: [TextButton(onPressed: () => context.go(RoutesManager.kHomeScreen), child: const Text("Finish"))],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text("🌟 Superstar!", textAlign: TextAlign.center),
+      content: Text("You found all $maxLevels stars!\nYour progress has been saved for your parents.", textAlign: TextAlign.center),
+      actions: [
+        Center(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ColorManager.pinkk),
+            onPressed: () => context.go(RoutesManager.kHomeScreen), 
+            child: const Text("Finish", style: TextStyle(color: Colors.white))
+          ),
+        )
+      ],
     ));
   }
 
@@ -134,17 +166,22 @@ class _FindStarState extends State<FindStar> {
         leading: IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => Navigator.pop(context)),
       ),
       body: GestureDetector(
-        onTapDown: (details) => _handleTap(false), // لو داس في أي مكان غلط
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (details) => _handleTap(false), 
         child: Stack(
           children: [
             const Center(child: Text("Can you see the hidden star?", style: TextStyle(color: Colors.grey))),
             Align(
               alignment: Alignment(starPos.dx, starPos.dy),
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTapDown: (details) {
-                  _handleTap(true); // داس على النجمة صح
+                  _handleTap(true);
                 },
-                child: Icon(Icons.star, color: Colors.amber.withOpacity(0.6), size: 40.sp),
+                child: Padding(
+                  padding: EdgeInsets.all(10.w),
+                  child: Icon(Icons.star, color: Colors.amber.withOpacity(0.8), size: 50.sp),
+                ),
               ),
             ),
           ],

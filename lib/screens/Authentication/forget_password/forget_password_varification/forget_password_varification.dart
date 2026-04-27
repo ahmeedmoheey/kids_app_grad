@@ -23,52 +23,98 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
 
   void verifyOtp() async {
     String otp = controllers.map((c) => c.text).join();
-    if (otp.length < 6) return;
+    if (otp.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter 6-digit code")));
+      return;
+    }
 
     setState(() => isLoading = true);
 
     try {
-      // محاولة تفعيل الحساب
+      // 1. Try Email Verification (Registration Flow)
+      final String verifyEmailUrl = ApiConstants.parentVerifyEmail;
+      final Map<String, String> requestBody = {
+        'email': widget.email,
+        'otp': otp,
+      };
+      
+      print("======= VERIFY EMAIL DEBUG =======");
+      print("Final URL: $verifyEmailUrl");
+      print("Request Body: ${json.encode(requestBody)}");
+
       final response = await http.post(
-        Uri.parse(ApiConstants.parentVerifyEmail),
-        headers: {'Accept': 'application/json'},
-        body: {'email': widget.email, 'otp': otp},
+        Uri.parse(verifyEmailUrl),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
       );
+
+      print("Status Code: ${response.statusCode}");
+      print("Full Response Body: ${response.body}");
+      print("==================================");
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         
-        // حفظ التوكن وبيانات المستخدم عشان الـ SplashScreen تعرفه
         if (data['token'] != null) {
           await prefs.setString('token', data['token']);
+          await prefs.setString('parent_token', data['token']);
+          await prefs.setString('user_type', 'parent');
         }
+        
         if (data['user'] != null) {
           await prefs.setString('user_data', json.encode(data['user']));
         }
+        
+        bool hasChildren = data['has_children'] ?? false;
+        await prefs.setBool('has_children', hasChildren);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account verified successfully!")));
-          // يروح يضيف طفل فوراً
-          GoRouter.of(context).go(RoutesManager.kSignUpForChild);
+          if (hasChildren) {
+            GoRouter.of(context).go(RoutesManager.kHomePageParent);
+          } else {
+            GoRouter.of(context).go(RoutesManager.kSignUpForChild);
+          }
         }
-      } else {
-        // لو مش تفعيل، جرب يكون Reset Password
-        final resetResponse = await http.post(
-          Uri.parse(ApiConstants.parentVerifyResetOtp),
-          headers: {'Accept': 'application/json'},
-          body: {'email': widget.email, 'otp': otp},
-        );
+        return; // Success, exit function
+      } 
+      
+      // 2. Try Reset OTP Verification (Forgot Password Flow)
+      // Only try this if it wasn't a 200, but maybe check if it's specifically an error related to "already verified" or "invalid otp"
+      // to avoid double calling if we know it's a registration failure.
+      
+      final String resetOtpUrl = ApiConstants.parentVerifyResetOtp;
+      print("--- ATTEMPTING RESET OTP FALLBACK ---");
+      
+      final resetResponse = await http.post(
+        Uri.parse(resetOtpUrl),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'email': widget.email, 'otp': otp}),
+      );
 
-        final resetData = json.decode(resetResponse.body);
-        if (resetResponse.statusCode == 200) {
-          if (mounted) GoRouter.of(context).push(RoutesManager.kSetNewPass, extra: resetData['reset_token']);
-        } else {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? resetData['message'] ?? "Invalid Code")));
+      final resetData = json.decode(resetResponse.body);
+      print("Reset OTP Status: ${resetResponse.statusCode}");
+      print("Reset OTP Response: ${resetResponse.body}");
+
+      if (resetResponse.statusCode == 200) {
+        if (mounted) GoRouter.of(context).push(RoutesManager.kSetNewPass, extra: resetData['reset_token']);
+      } else {
+        if (mounted) {
+          // Show message from primary request if fallback also fails
+          String errorMessage = data['message'] ?? resetData['message'] ?? "Invalid Code";
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
       }
     } catch (e) {
+      print("Exception during verification: $e");
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connection error")));
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -78,11 +124,18 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
   void resendOtp() async {
     setState(() => isResending = true);
     try {
-      await http.post(
-        Uri.parse(ApiConstants.parentResendVerification),
-        headers: {'Accept': 'application/json'},
-        body: {'email': widget.email},
+      final String resendUrl = ApiConstants.parentResendVerification;
+      print("Calling Resend OTP API: $resendUrl");
+      
+      final response = await http.post(
+        Uri.parse(resendUrl),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'email': widget.email}),
       );
+
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("OTP resent!")));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error resending code")));
@@ -123,6 +176,7 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
                   maxLength: 1,
                   onChanged: (value) {
                     if (value.isNotEmpty && index < 5) FocusScope.of(context).nextFocus();
+                    if (value.isEmpty && index > 0) FocusScope.of(context).previousFocus();
                   },
                   decoration: InputDecoration(counterText: "", filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15.r), borderSide: BorderSide.none)),
                 ),
