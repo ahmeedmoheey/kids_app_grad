@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kids_app_grad/screens/home_page_parent/chat_ai/chat_ai.dart';
 import 'package:kids_app_grad/screens/home_page_parent/dashboard_screen/dashboard_screen.dart';
 import 'package:kids_app_grad/utils/assets_manager.dart';
 import 'package:kids_app_grad/utils/colors_manager.dart';
+import 'package:kids_app_grad/utils/routes_manager.dart';
 
 class HomePageParent extends StatefulWidget {
   const HomePageParent({super.key});
@@ -24,6 +26,11 @@ class _HomePageParentState extends State<HomePageParent> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: GestureDetector(
+            onTap: () {
+              GoRouter.of(context).push(RoutesManager.kLoginForParent);
+            },
+            child: Icon(Icons.arrow_back)),
         title: Text(
           currentIndex == 0 ? "Dashboard" : "Chat AI",
           style: const TextStyle(fontWeight: FontWeight.bold),

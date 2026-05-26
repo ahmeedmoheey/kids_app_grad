@@ -37,7 +37,7 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
         'email': widget.email,
         'otp': otp,
       };
-      
+
       print("======= VERIFY EMAIL DEBUG =======");
       print("Final URL: $verifyEmailUrl");
       print("Request Body: ${json.encode(requestBody)}");
@@ -59,17 +59,17 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
-        
+
         if (data['token'] != null) {
           await prefs.setString('token', data['token']);
           await prefs.setString('parent_token', data['token']);
           await prefs.setString('user_type', 'parent');
         }
-        
+
         if (data['user'] != null) {
           await prefs.setString('user_data', json.encode(data['user']));
         }
-        
+
         bool hasChildren = data['has_children'] ?? false;
         await prefs.setBool('has_children', hasChildren);
 
@@ -82,15 +82,15 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
           }
         }
         return; // Success, exit function
-      } 
-      
+      }
+
       // 2. Try Reset OTP Verification (Forgot Password Flow)
       // Only try this if it wasn't a 200, but maybe check if it's specifically an error related to "already verified" or "invalid otp"
       // to avoid double calling if we know it's a registration failure.
-      
+
       final String resetOtpUrl = ApiConstants.parentVerifyResetOtp;
       print("--- ATTEMPTING RESET OTP FALLBACK ---");
-      
+
       final resetResponse = await http.post(
         Uri.parse(resetOtpUrl),
         headers: {
@@ -126,7 +126,7 @@ class _ForgetPasswordVarificationState extends State<ForgetPasswordVarification>
     try {
       final String resendUrl = ApiConstants.parentResendVerification;
       print("Calling Resend OTP API: $resendUrl");
-      
+
       final response = await http.post(
         Uri.parse(resendUrl),
         headers: {

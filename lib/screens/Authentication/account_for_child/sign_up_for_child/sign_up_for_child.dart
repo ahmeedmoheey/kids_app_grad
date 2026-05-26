@@ -52,8 +52,8 @@ class _SignUpForChildState extends State<SignUpForChild> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      // تجنب الهارد كود للـ Avatar URL، يفضل إرسال رقم الأفاتار أو المسار
-      String dummyAvatarUrl = "avatar_${_selectedAvatar + 1}";
+      // تم تغيير القيمة لتكون URL صالح لأن السيرفر يتطلب ذلك
+      String dummyAvatarUrl = "https://ui-avatars.com/api/?name=${_nameController.text.trim()}&background=random";
 
       final response = await http.post(
         Uri.parse(ApiConstants.createChild),
@@ -77,7 +77,7 @@ class _SignUpForChildState extends State<SignUpForChild> {
       if (response.statusCode == 201) {
         if (mounted) {
           UIHelpers.showSuccessSnackBar(context, 'Child profile created successfully!');
-          context.go(RoutesManager.kHomePageParent); // العودة للداش بورد لرؤية الطفل الجديد
+          context.go(RoutesManager.kHomePageParent); 
         }
       } else {
         String message = data['message'] ?? 'Failed to create profile';

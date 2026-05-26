@@ -25,6 +25,19 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _handleStartUp() async {
+    // تجربة الـ health endpoint للتأكد من اتصال الـ ngrok
+    try {
+      debugPrint("Testing Health endpoint: ${ApiConstants.health}");
+      final healthResponse = await http.get(
+        Uri.parse(ApiConstants.health),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+      debugPrint('Health Check Status: ${healthResponse.statusCode}');
+      debugPrint('Health Check Body: ${healthResponse.body}');
+    } catch (e) {
+      debugPrint('Health Check Failed: $e');
+    }
+
     await Future.delayed(const Duration(seconds: 2));
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('token');

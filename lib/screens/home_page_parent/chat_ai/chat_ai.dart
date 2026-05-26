@@ -53,7 +53,7 @@ class _ChatAiState extends State<ChatAi> {
 
   Future<void> _handleUnauthorized() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // مسح التوكن وكل البيانات
+    await prefs.clear(); 
     if (mounted) {
       context.go(RoutesManager.kWelcomeScreen);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,6 +75,7 @@ class _ChatAiState extends State<ChatAi> {
           headers: {
             'Accept': 'application/json',
             'Authorization': 'Bearer $token',
+            'ngrok-skip-browser-warning': 'true', // لتخطي صفحة تحذير ngrok
           }).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
@@ -124,6 +125,7 @@ class _ChatAiState extends State<ChatAi> {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'ngrok-skip-browser-warning': 'true', // لتخطي صفحة تحذير ngrok
         },
         body: jsonEncode({'message': text}), 
       ).timeout(const Duration(seconds: 20));

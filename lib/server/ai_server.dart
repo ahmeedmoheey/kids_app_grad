@@ -19,19 +19,28 @@ class AIService {
         body: jsonEncode({
           'message': userMessage,
         }),
-      );
+      ).timeout(const Duration(seconds: 20));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        // قراءة الرد من الحقل reply أو هيكلية الـ message حسب رد السيرفر
-        if (data['reply'] != null) return data['reply'];
-        if (data['message'] != null && data['message'] is Map) return data['message']['message'];
+        
+        if (data['reply'] != null) {
+          return data['reply'].toString();
+        }
+        
+        if (data['message'] != null) {
+          if (data['message'] is Map && data['message']['message'] != null) {
+            return data['message']['message'].toString();
+          }
+          return data['message'].toString();
+        }
+        
         return "Thinking...";
       } else {
-        return "Error: ${response.statusCode}";
+        return "Server Error: ${response.statusCode}";
       }
     } catch (e) {
-      return "Connection error: Check your Server IP";
+      return "Connection error: Please check your Server IP or Internet.";
     }
   }
 }

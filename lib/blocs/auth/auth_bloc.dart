@@ -20,20 +20,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       bool isEmail = event.emailOrName.contains('@');
       String url = isEmail ? ApiConstants.parentLogin : ApiConstants.childLogin;
       
+      debugPrint(">>> [AUTH] POST: $url");
+      
+      final body = json.encode(isEmail 
+            ? {'email': event.emailOrName, 'password': event.password}
+            : {'username': event.emailOrName, 'password': event.password});
+
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
-        body: json.encode(isEmail 
-            ? {'email': event.emailOrName, 'password': event.password}
-            : {'username': event.emailOrName, 'password': event.password}),
-      ).timeout(const Duration(seconds: 15));
+        headers: {
+          'Accept': 'application/json', 
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      );
+
+      debugPrint(">>> [AUTH] Status: ${response.statusCode}");
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
-        
-        // حفظ التوكن باسم عام وأيضاً باسم مخصص للدور (Role)
         await prefs.setString('token', data['token']);
         
         if (isEmail) {
@@ -55,10 +62,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         
         emit(AuthSuccess("Login Successful!", userData: data));
       } else {
-        emit(AuthFailure(data['message'] ?? "Invalid email or password."));
+        emit(AuthFailure(data['message'] ?? "Error ${response.statusCode}"));
       }
     } catch (e) {
-      emit(AuthFailure("Connection error. Ensure Laravel is running."));
+      debugPrint(">>> [AUTH] Error: $e");
+      emit(AuthFailure("System Error: ${e.toString()}"));
     }
   }
 
@@ -67,14 +75,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final response = await http.post(
         Uri.parse(ApiConstants.parentRegister),
-        headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+        headers: {
+          'Accept': 'application/json', 
+          'Content-Type': 'application/json',
+        },
         body: json.encode(event.userData),
-      ).timeout(const Duration(seconds: 20));
+      );
 
       final data = json.decode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        emit(AuthSuccess(data['message'] ?? "Registration Successful! Check your email for OTP."));
+        emit(AuthSuccess(data['message'] ?? "Registration Successful!"));
       } else {
         String errorMsg = data['message'] ?? "Registration failed.";
         if (data['errors'] != null) {
@@ -83,7 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthFailure(errorMsg));
       }
     } catch (e) {
-      emit(AuthFailure("Connection error. Server might be down."));
+      emit(AuthFailure("Error: ${e.toString()}"));
     }
   }
 

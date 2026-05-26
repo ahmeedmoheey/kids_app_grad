@@ -34,7 +34,6 @@ class _LoginScreenState extends State<LoginScreen> {
             if (state.userData != null) {
               bool isParent = emailOrNameController.text.contains('@');
               if (isParent) {
-                // تعديل: التوجيه دائماً لصفحة الأب الرئيسية عند تسجيل الدخول
                 context.go(RoutesManager.kHomePageParent);
               } else {
                 context.go(RoutesManager.kHomeScreen);
@@ -54,10 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
                return;
             }
 
-            if (state.error.toLowerCase().contains("connection") || state.error.toLowerCase().contains("host")) {
-               displayError += "\n\nTip: Ensure Laravel is running with --host=0.0.0.0 and you are on the same Wi-Fi.";
-            }
-            
+            // تم إزالة تبديل الرسالة لإظهار الخطأ الحقيقي (System Error)
             UIHelpers.showErrorDialog(context, displayError);
           }
         },
