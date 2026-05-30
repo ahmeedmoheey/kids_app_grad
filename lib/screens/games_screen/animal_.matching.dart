@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -47,6 +48,16 @@ class MekkyPiece {
   MekkyPiece({required this.id, required this.image, this.isMatched = false});
 }
 
+class AnimalMatchNode {
+  final int index;
+  final Offset point;
+
+  const AnimalMatchNode({
+    required this.index,
+    required this.point,
+  });
+}
+
 class AnimalMatching extends StatefulWidget {
   const AnimalMatching({super.key});
 
@@ -56,7 +67,7 @@ class AnimalMatching extends StatefulWidget {
 
 class _AnimalMatchingState extends State<AnimalMatching> {
   static const String _gameSlug = 'animal-match';
-  static const int _totalStages = 8;
+  static const int _totalStages = 10;
 
   final List<int> mekkyCorrectOrder = [1, 8, 5, 7, 2, 4, 6, 3];
   final Map<int, int> _rabbitSolution = {
@@ -120,12 +131,85 @@ class _AnimalMatchingState extends State<AnimalMatching> {
         (i) => MekkyPiece(id: i + 1, image: "assets/images/mekky${i + 1}.png"),
   );
 
+  final List<AnimalMatchNode> _animalLeftNodes = const [
+    AnimalMatchNode(index: 0, point: Offset(0.345, 0.085)),
+    AnimalMatchNode(index: 1, point: Offset(0.345, 0.220)),
+    AnimalMatchNode(index: 2, point: Offset(0.345, 0.360)),
+    AnimalMatchNode(index: 3, point: Offset(0.345, 0.500)),
+    AnimalMatchNode(index: 4, point: Offset(0.345, 0.640)),
+    AnimalMatchNode(index: 5, point: Offset(0.345, 0.780)),
+    AnimalMatchNode(index: 6, point: Offset(0.345, 0.915)),
+  ];
+
+  final List<AnimalMatchNode> _animalRightNodes = const [
+    AnimalMatchNode(index: 0, point: Offset(0.665, 0.085)),
+    AnimalMatchNode(index: 1, point: Offset(0.665, 0.220)),
+    AnimalMatchNode(index: 2, point: Offset(0.665, 0.360)),
+    AnimalMatchNode(index: 3, point: Offset(0.665, 0.500)),
+    AnimalMatchNode(index: 4, point: Offset(0.665, 0.640)),
+    AnimalMatchNode(index: 5, point: Offset(0.665, 0.780)),
+    AnimalMatchNode(index: 6, point: Offset(0.665, 0.915)),
+  ];
+
+  final Map<int, int> _animalMatchSolution = const {
+    0: 1,
+    1: 3,
+    2: 5,
+    3: 0,
+    4: 6,
+    5: 2,
+    6: 4,
+  };
+
+  final List<AnimalMatchNode> _animal2LeftNodes = const [
+    AnimalMatchNode(index: 0, point: Offset(0.325, 0.055)),
+    AnimalMatchNode(index: 1, point: Offset(0.325, 0.175)),
+    AnimalMatchNode(index: 2, point: Offset(0.325, 0.300)),
+    AnimalMatchNode(index: 3, point: Offset(0.325, 0.425)),
+    AnimalMatchNode(index: 4, point: Offset(0.325, 0.550)),
+    AnimalMatchNode(index: 5, point: Offset(0.325, 0.675)),
+    AnimalMatchNode(index: 6, point: Offset(0.325, 0.800)),
+    AnimalMatchNode(index: 7, point: Offset(0.325, 0.925)),
+  ];
+
+  final List<AnimalMatchNode> _animal2RightNodes = const [
+    AnimalMatchNode(index: 0, point: Offset(0.670, 0.055)),
+    AnimalMatchNode(index: 1, point: Offset(0.670, 0.175)),
+    AnimalMatchNode(index: 2, point: Offset(0.670, 0.300)),
+    AnimalMatchNode(index: 3, point: Offset(0.670, 0.425)),
+    AnimalMatchNode(index: 4, point: Offset(0.670, 0.550)),
+    AnimalMatchNode(index: 5, point: Offset(0.670, 0.675)),
+    AnimalMatchNode(index: 6, point: Offset(0.670, 0.800)),
+    AnimalMatchNode(index: 7, point: Offset(0.670, 0.925)),
+  ];
+
+  final Map<int, int> _animal2MatchSolution = const {
+    0: 6,
+    1: 4,
+    2: 7,
+    3: 5,
+    4: 1,
+    5: 2,
+    6: 0,
+    7: 3,
+  };
+
   List<LionPiece> draggablePieces = [];
   List<DuckPiece> draggableDucks = [];
   List<BeePiece> draggableBees = [];
   List<TurtlePiece> draggableTurtles = [];
   List<RabbitPiece> draggableRabbits = [];
   List<MekkyPiece> draggableMekkies = [];
+  final Map<int, int> _animalMatchedPairs = {};
+  int? _selectedAnimalLeft;
+  int? _animalPreviewLeft;
+  int? _animalPreviewRight;
+  bool _animalPreviewWrong = false;
+  final Map<int, int> _animal2MatchedPairs = {};
+  int? _animal2SelectedLeft;
+  int? _animal2PreviewLeft;
+  int? _animal2PreviewRight;
+  bool _animal2PreviewWrong = false;
 
   Map<int, int?> rabbitSlotContents = {};
   Map<int, int?> mekkySlotContents = {};
@@ -235,6 +319,10 @@ class _AnimalMatchingState extends State<AnimalMatching> {
         return "rabbit";
       case 7:
         return "mekky";
+      case 8:
+        return "animal_silhouette_match";
+      case 9:
+        return "animal_silhouette_match_2";
       default:
         return "animal_match";
     }
@@ -248,6 +336,9 @@ class _AnimalMatchingState extends State<AnimalMatching> {
       case 6:
       case 7:
         return "drag_grid_puzzle";
+      case 8:
+      case 9:
+        return "line_matching";
       default:
         return "drag_and_drop";
     }
@@ -301,6 +392,18 @@ class _AnimalMatchingState extends State<AnimalMatching> {
           value: (_) => null,
         );
         mekkyMatchedCount = 0;
+      } else if (gameState == 8) {
+        _animalMatchedPairs.clear();
+        _selectedAnimalLeft = null;
+        _animalPreviewLeft = null;
+        _animalPreviewRight = null;
+        _animalPreviewWrong = false;
+      } else if (gameState == 9) {
+        _animal2MatchedPairs.clear();
+        _animal2SelectedLeft = null;
+        _animal2PreviewLeft = null;
+        _animal2PreviewRight = null;
+        _animal2PreviewWrong = false;
       }
 
       startTime = DateTime.now();
@@ -500,6 +603,8 @@ class _AnimalMatchingState extends State<AnimalMatching> {
     if (gameState == 5) gameTitle = "Turtle Puzzle";
     if (gameState == 6) gameTitle = "Rabbit Puzzle";
     if (gameState == 7) gameTitle = "Mickey Puzzle";
+    if (gameState == 8) gameTitle = "Animal Match";
+    if (gameState == 9) gameTitle = "Animal Match";
 
     return WillPopScope(
       onWillPop: () async {
@@ -526,6 +631,25 @@ class _AnimalMatchingState extends State<AnimalMatching> {
           ),
           centerTitle: true,
           actions: [
+            if (gameState == 8 || gameState == 9)
+              Container(
+                margin: EdgeInsets.only(top: 14.h, bottom: 14.h, right: 8.w),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xffFFF0C8),
+                  borderRadius: BorderRadius.circular(18.r),
+                ),
+                child: Center(
+                  child: Text(
+                    "LEVEL 1",
+                    style: TextStyle(
+                      color: const Color(0xffE39B20),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
             Padding(
               padding: EdgeInsets.all(8.w),
               child: CircleAvatar(
@@ -612,30 +736,34 @@ class _AnimalMatchingState extends State<AnimalMatching> {
         Expanded(
           child: gameState == 0
               ? _buildLineMatching(6, "assets/images/connect_gam.png", matchesG1)
-              : (gameState == 1
+              : gameState == 1
               ? _buildLionPuzzle()
-              : (gameState == 2
+              : gameState == 2
               ? _buildLineMatching(
             5,
             "assets/images/connect_gam2.png",
             matchesG2,
           )
-              : (gameState == 3
+              : gameState == 3
               ? _buildDuckPuzzle()
-              : (gameState == 4
+              : gameState == 4
               ? _buildBeePuzzle()
-              : (gameState == 5
+              : gameState == 5
               ? _buildTurtlePuzzle()
-              : (gameState == 6
+              : gameState == 6
               ? _buildRabbitPuzzle()
-              : _buildMekkyPuzzle())))))),
+              : gameState == 7
+              ? _buildMekkyPuzzle()
+              : gameState == 8
+              ? _buildAnimalMatchStage()
+              : _buildAnimalMatchStage2(),
         ),
       ],
     );
   }
 
   Widget _buildProgressBar() {
-    int total = [6, 4, 5, 3, 4, 4, 9, 8][gameState];
+    int total = [6, 4, 5, 3, 4, 4, 9, 8, 7, 8][gameState];
     int current = [
       lines.length,
       matchedCount,
@@ -645,6 +773,8 @@ class _AnimalMatchingState extends State<AnimalMatching> {
       turtleMatchedCount,
       rabbitSlotContents.values.where((v) => v != null).length,
       mekkyMatchedCount,
+      _animalMatchedPairs.length,
+      _animal2MatchedPairs.length,
     ][gameState];
 
     return Padding(
@@ -1588,7 +1718,13 @@ class _AnimalMatchingState extends State<AnimalMatching> {
         );
 
         if (shouldFinish) {
-          _endSession(showResultDialog: true, scoreOverride: _totalStages);
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            setState(() {
+              gameState = 8;
+            });
+            _initLevel();
+          });
         }
       },
       builder: (context, candidateData, _) {
@@ -1616,6 +1752,360 @@ class _AnimalMatchingState extends State<AnimalMatching> {
         );
       },
     );
+  }
+
+  Widget _buildAnimalMatchStage() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18.w, 8.h, 18.w, 18.h),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 336.w,
+            maxHeight: 612.h,
+          ),
+          child: AspectRatio(
+            aspectRatio: 358 / 633,
+            child: DottedBorder(
+              color: const Color(0xffD8C7AA),
+              strokeWidth: 1.6,
+              dashPattern: const [6, 4],
+              borderType: BorderType.RRect,
+              radius: Radius.circular(28.r),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28.r),
+                child: Container(
+                  color: const Color(0xffF8F2E6),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final boardSize = Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                      );
+                      final leftPoints = _animalLeftNodes
+                          .map(
+                            (node) => Offset(
+                          node.point.dx * boardSize.width,
+                          node.point.dy * boardSize.height,
+                        ),
+                      )
+                          .toList();
+                      final rightPoints = _animalRightNodes
+                          .map(
+                            (node) => Offset(
+                          node.point.dx * boardSize.width,
+                          node.point.dy * boardSize.height,
+                        ),
+                      )
+                          .toList();
+                      final previewStart = _animalPreviewLeft != null
+                          ? leftPoints[_animalPreviewLeft!]
+                          : null;
+                      final previewEnd = _animalPreviewRight != null
+                          ? rightPoints[_animalPreviewRight!]
+                          : null;
+
+                      return Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              "assets/images/animals2.png",
+                              fit: BoxFit.fill,
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: CustomPaint(
+                              size: boardSize,
+                              foregroundPainter: AnimalMatchPainter(
+                                matches: _animalMatchedPairs,
+                                leftPoints: leftPoints,
+                                rightPoints: rightPoints,
+                                previewStart: previewStart,
+                                previewEnd: previewEnd,
+                                previewWrong: _animalPreviewWrong,
+                              ),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                          ...List.generate(
+                            leftPoints.length,
+                                (index) => _buildAnimalTapTarget(
+                              point: leftPoints[index],
+                              enabled: !_animalMatchedPairs.containsKey(index),
+                              onTap: () => _onAnimalLeftTap(index),
+                            ),
+                          ),
+                          ...List.generate(
+                            rightPoints.length,
+                                (index) => _buildAnimalTapTarget(
+                              point: rightPoints[index],
+                              enabled:
+                              !_animalMatchedPairs.containsValue(index),
+                              onTap: () => _onAnimalRightTap(index),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimalTapTarget({
+    required Offset point,
+    required VoidCallback onTap,
+    required bool enabled,
+  }) {
+    return Positioned(
+      left: point.dx - 26.w,
+      top: point.dy - 26.w,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: enabled ? onTap : null,
+        child: SizedBox(
+          width: 52.w,
+          height: 52.w,
+        ),
+      ),
+    );
+  }
+
+  void _onAnimalLeftTap(int leftIndex) {
+    if (_animalMatchedPairs.containsKey(leftIndex)) return;
+
+    setState(() {
+      _selectedAnimalLeft = leftIndex;
+      _animalPreviewLeft = null;
+      _animalPreviewRight = null;
+      _animalPreviewWrong = false;
+    });
+  }
+
+  void _onAnimalRightTap(int rightIndex) {
+    if (_selectedAnimalLeft == null ||
+        _animalMatchedPairs.containsValue(rightIndex)) {
+      return;
+    }
+
+    final leftIndex = _selectedAnimalLeft!;
+    final isCorrect = _animalMatchSolution[leftIndex] == rightIndex;
+
+    setState(() {
+      _animalPreviewLeft = leftIndex;
+      _animalPreviewRight = rightIndex;
+      _animalPreviewWrong = !isCorrect;
+    });
+
+    _submitTrial(
+      correct: isCorrect,
+      promptValue: _trialValue("left", leftIndex + 1),
+      selectedValue: _trialValue("right", rightIndex + 1),
+      stimulusCount: _animalMatchSolution.length,
+    );
+
+    if (!isCorrect) {
+      HapticFeedback.vibrate();
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        setState(() {
+          _selectedAnimalLeft = null;
+          _animalPreviewLeft = null;
+          _animalPreviewRight = null;
+          _animalPreviewWrong = false;
+        });
+      });
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    setState(() {
+      _animalMatchedPairs[leftIndex] = rightIndex;
+      _selectedAnimalLeft = null;
+      _animalPreviewLeft = null;
+      _animalPreviewRight = null;
+      _animalPreviewWrong = false;
+    });
+
+    if (_animalMatchedPairs.length == _animalMatchSolution.length) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        setState(() {
+          gameState = 9;
+        });
+        _initLevel();
+      });
+    }
+  }
+
+  Widget _buildAnimalMatchStage2() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18.w, 8.h, 18.w, 18.h),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 336.w,
+            maxHeight: 612.h,
+          ),
+          child: AspectRatio(
+            aspectRatio: 315 / 613,
+            child: DottedBorder(
+              color: const Color(0xffD8C7AA),
+              strokeWidth: 1.6,
+              dashPattern: const [6, 4],
+              borderType: BorderType.RRect,
+              radius: Radius.circular(28.r),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28.r),
+                child: Container(
+                  color: const Color(0xffF8F2E6),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final boardSize = Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                      );
+                      final leftPoints = _animal2LeftNodes
+                          .map(
+                            (node) => Offset(
+                          node.point.dx * boardSize.width,
+                          node.point.dy * boardSize.height,
+                        ),
+                      )
+                          .toList();
+                      final rightPoints = _animal2RightNodes
+                          .map(
+                            (node) => Offset(
+                          node.point.dx * boardSize.width,
+                          node.point.dy * boardSize.height,
+                        ),
+                      )
+                          .toList();
+                      final previewStart = _animal2PreviewLeft != null
+                          ? leftPoints[_animal2PreviewLeft!]
+                          : null;
+                      final previewEnd = _animal2PreviewRight != null
+                          ? rightPoints[_animal2PreviewRight!]
+                          : null;
+
+                      return Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              "assets/images/animals.png",
+                              fit: BoxFit.fill,
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: CustomPaint(
+                              size: boardSize,
+                              foregroundPainter: AnimalMatchPainter(
+                                matches: _animal2MatchedPairs,
+                                leftPoints: leftPoints,
+                                rightPoints: rightPoints,
+                                previewStart: previewStart,
+                                previewEnd: previewEnd,
+                                previewWrong: _animal2PreviewWrong,
+                              ),
+                              child: const SizedBox.expand(),
+                            ),
+                          ),
+                          ...List.generate(
+                            leftPoints.length,
+                                (index) => _buildAnimalTapTarget(
+                              point: leftPoints[index],
+                              enabled: !_animal2MatchedPairs.containsKey(index),
+                              onTap: () => _onAnimal2LeftTap(index),
+                            ),
+                          ),
+                          ...List.generate(
+                            rightPoints.length,
+                                (index) => _buildAnimalTapTarget(
+                              point: rightPoints[index],
+                              enabled:
+                              !_animal2MatchedPairs.containsValue(index),
+                              onTap: () => _onAnimal2RightTap(index),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onAnimal2LeftTap(int leftIndex) {
+    if (_animal2MatchedPairs.containsKey(leftIndex)) return;
+
+    setState(() {
+      _animal2SelectedLeft = leftIndex;
+      _animal2PreviewLeft = null;
+      _animal2PreviewRight = null;
+      _animal2PreviewWrong = false;
+    });
+  }
+
+  void _onAnimal2RightTap(int rightIndex) {
+    if (_animal2SelectedLeft == null ||
+        _animal2MatchedPairs.containsValue(rightIndex)) {
+      return;
+    }
+
+    final leftIndex = _animal2SelectedLeft!;
+    final isCorrect = _animal2MatchSolution[leftIndex] == rightIndex;
+
+    setState(() {
+      _animal2PreviewLeft = leftIndex;
+      _animal2PreviewRight = rightIndex;
+      _animal2PreviewWrong = !isCorrect;
+    });
+
+    _submitTrial(
+      correct: isCorrect,
+      promptValue: _trialValue("left", leftIndex + 1),
+      selectedValue: _trialValue("right", rightIndex + 1),
+      stimulusCount: _animal2MatchSolution.length,
+    );
+
+    if (!isCorrect) {
+      HapticFeedback.vibrate();
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (!mounted) return;
+        setState(() {
+          _animal2SelectedLeft = null;
+          _animal2PreviewLeft = null;
+          _animal2PreviewRight = null;
+          _animal2PreviewWrong = false;
+        });
+      });
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    setState(() {
+      _animal2MatchedPairs[leftIndex] = rightIndex;
+      _animal2SelectedLeft = null;
+      _animal2PreviewLeft = null;
+      _animal2PreviewRight = null;
+      _animal2PreviewWrong = false;
+    });
+
+    if (_animal2MatchedPairs.length == _animal2MatchSolution.length) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        _endSession(showResultDialog: true, scoreOverride: _totalStages);
+      });
+    }
   }
 
   void _showFinishDialog({required int stars, Map<String, dynamic>? summary}) {
@@ -1654,7 +2144,7 @@ class _AnimalMatchingState extends State<AnimalMatching> {
               ),
             SizedBox(height: 10.h),
             Text(
-              showWeakness ? "Attention Needed" : "Excellent Job!",
+              showWeakness ? "Attention Needed" : "Level Completed",
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: showWeakness ? Colors.red : Colors.black,
@@ -1782,4 +2272,141 @@ class ArrowPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class AnimalMatchPainter extends CustomPainter {
+  final Map<int, int> matches;
+  final List<Offset> leftPoints;
+  final List<Offset> rightPoints;
+  final Offset? previewStart;
+  final Offset? previewEnd;
+  final bool previewWrong;
+
+  AnimalMatchPainter({
+    required this.matches,
+    required this.leftPoints,
+    required this.rightPoints,
+    this.previewStart,
+    this.previewEnd,
+    this.previewWrong = false,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final hasMatchedLines = matches.isNotEmpty;
+    final hasPreviewLine = previewStart != null && previewEnd != null;
+
+    if (!hasMatchedLines && !hasPreviewLine) {
+      return;
+    }
+
+    final glowPaint = Paint()
+      ..color = const Color(0xff47A765).withOpacity(0.18)
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final haloPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final linePaint = Paint()
+      ..color = const Color(0xff47A765)
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final arrowPaint = Paint()
+      ..color = const Color(0xff47A765)
+      ..style = PaintingStyle.fill;
+
+    final previewPaint = Paint()
+      ..color = previewWrong ? const Color(0xffE85A5A) : const Color(0xffF2AE2E)
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final previewArrowPaint = Paint()
+      ..color = previewWrong ? const Color(0xffE85A5A) : const Color(0xffF2AE2E)
+      ..style = PaintingStyle.fill;
+
+    if (hasMatchedLines) {
+      matches.forEach((leftIndex, rightIndex) {
+        if (leftIndex >= leftPoints.length ||
+            rightIndex >= rightPoints.length) {
+          return;
+        }
+
+        final start = leftPoints[leftIndex];
+        final end = rightPoints[rightIndex];
+
+        canvas.drawLine(start, end, glowPaint);
+        canvas.drawLine(start, end, haloPaint);
+        canvas.drawLine(start, end, linePaint);
+
+        final direction = end - start;
+        final length = direction.distance;
+        if (length <= 0) return;
+
+        final unit = direction / length;
+        final arrowTip = end - (unit * 10);
+        final arrowBase = end - (unit * 26);
+        final normal = Offset(-unit.dy, unit.dx);
+
+        final arrowPath = Path()
+          ..moveTo(arrowTip.dx, arrowTip.dy)
+          ..lineTo(
+            arrowBase.dx + (normal.dx * 10),
+            arrowBase.dy + (normal.dy * 10),
+          )
+          ..lineTo(
+            arrowBase.dx - (normal.dx * 10),
+            arrowBase.dy - (normal.dy * 10),
+          )
+          ..close();
+
+        canvas.drawPath(
+          arrowPath,
+          Paint()
+            ..color = Colors.white.withOpacity(0.85)
+            ..style = PaintingStyle.fill,
+        );
+        canvas.drawPath(arrowPath, arrowPaint);
+      });
+    }
+
+    if (previewStart != null && previewEnd != null) {
+      canvas.drawLine(previewStart!, previewEnd!, previewPaint);
+
+      final direction = previewEnd! - previewStart!;
+      final length = direction.distance;
+      if (length > 0) {
+        final unit = direction / length;
+        final arrowTip = previewEnd! - (unit * 10);
+        final arrowBase = previewEnd! - (unit * 26);
+        final normal = Offset(-unit.dy, unit.dx);
+
+        final previewArrowPath = Path()
+          ..moveTo(arrowTip.dx, arrowTip.dy)
+          ..lineTo(
+            arrowBase.dx + (normal.dx * 10),
+            arrowBase.dy + (normal.dy * 10),
+          )
+          ..lineTo(
+            arrowBase.dx - (normal.dx * 10),
+            arrowBase.dy - (normal.dy * 10),
+          )
+          ..close();
+
+        canvas.drawPath(previewArrowPath, previewArrowPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant AnimalMatchPainter oldDelegate) {
+    return true;
+  }
 }
